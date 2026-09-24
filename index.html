@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d1b2a">
+    <title>CanaGen</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+    <img src="icon-192.png" alt="CanaGen">
+    <div class="splash-title">CanaGen</div>
+    <div class="splash-sub">Génétique Canaris COM</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="rappel-import" style="display:none;position:fixed;top:0;left:0;right:0;z-index:3000;padding:12px 15px;text-align:center;background:#1e3a5f;border-bottom:2px solid #f5d020;">
+    <div style="font-size:0.85rem;font-weight:bold;margin-bottom:8px;color:#f5d020;">🐦 Votre volière semble vide — avez-vous une sauvegarde ?</div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+        <button onclick="naviguerVers('page-cheptel',document.getElementById('btn-nav-cheptel'));afficherImport();fermerRappel();"
+            style="padding:6px 14px;background:#f5d020;color:#0d1b2a;border:none;border-radius:4px;font-weight:bold;cursor:pointer;">📥 Importer</button>
+        <button onclick="fermerRappel()"
+            style="padding:6px 14px;background:#1e3a5f;color:#a0aec0;border:1px solid #2a5080;border-radius:4px;cursor:pointer;">✕ Fermer</button>
+    </div>
+</div>
+
+<div class="container">
+
+<!-- PAGE 1 : CALCULATEUR -->
+<div id="page-calc" class="app-page active">
+    <h1>🧬 CanaGen — Calculateur</h1>
+    <div class="cat-bloc" style="margin-bottom:15px;">
+        <button class="cat-header" onclick="toggleSelectionCategorie()" style="border-left:4px solid #63b3ed;">
+            <span>📋 Sélection par Catégorie</span>
+            <span class="cat-arrow" id="selcat-arrow">▼</span>
+        </button>
+        <div id="selcat-panel" style="display:none;">
+            <p style="font-size:0.78rem;color:#718096;margin:8px 0;">1er clic = Père 🔵 · 2e clic = Mère 🔴</p>
+            <div id="categories-container"></div>
+        </div>
+    </div>
+    <div class="couple-container">
+        <div id="form-pere"></div>
+        <div id="form-mere"></div>
+    </div>
+    <div id="lethal-alert" class="alert-box">⚠️ DANGER — ACCOUPLEMENT LÉTAL ! Mortalité 25% dans l'œuf.</div>
+    <div style="display:flex;gap:8px;">
+        <button class="btn-calc" style="flex:2;" onclick="calculerGenetiqueExacte()">🧬 Simuler l'Accouplement</button>
+        <button class="btn-calc" style="flex:1;background:#742a2a;color:#fff;" onclick="reinitialiserCalculateur()">🔄 Réinitialiser</button>
+    </div>
+    <div id="results-area" class="result-box">
+        <h3 style="margin-top:0;color:#f5d020;">🐣 Résultats de la Descendance</h3>
+        <div class="result-title">Jeunes Mâles (♂) :</div>
+        <div id="result-males"></div>
+        <div class="result-title" style="margin-top:10px;">Jeunes Femelles (♀) :</div>
+        <div id="result-femelles"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+        <input type="text" id="sim-note-input" placeholder="Note (optionnel, ex : couple n°3)" style="flex:1;">
+        <button onclick="sauvegarderSimulationActuelle()" style="padding:8px 12px;background:#1e3a5f;color:#f5d020;border:1px solid #2a5080;border-radius:4px;cursor:pointer;white-space:nowrap;">💾 Sauvegarder</button>
+    </div>
+    <div class="cat-bloc" style="margin-bottom:15px;">
+        <button class="cat-header" onclick="toggleSimulations()" style="border-left:4px solid #f5d020;">
+            <span>💾 Simulations sauvegardées</span>
+            <span class="cat-count" id="sim-count">0</span>
+            <span class="cat-arrow" id="sim-arrow">▼</span>
+        </button>
+        <div id="sim-liste" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 8px 0;">
+                <label style="margin:0;font-size:0.8rem;color:#a0aec0;">Trier :</label>
+                <select id="sim-tri" onchange="trierSimulations(this.value)" style="flex:1;">
+                    <option value="recent">Plus récent d'abord</option>
+                    <option value="ancien">Plus ancien d'abord</option>
+                    <option value="cheptel">Par oiseau du Cheptel</option>
+                </select>
+            </div>
+            <div id="sim-liste-contenu"></div>
+        </div>
+    </div>
+</div>
+
+<!-- PAGE 2 : CHEPTEL -->
+<div id="page-cheptel" class="app-page">
+    <h1>🦅 Mon Élevage & Registre</h1>
+    <div style="display:flex;gap:10px;margin-bottom:15px;">
+        <div class="compteur-box">
+            <div style="font-size:1.5rem;font-weight:bold;color:#63b3ed;" id="compteur-males">0</div>
+            <div style="font-size:0.75rem;color:#718096;">Mâles ♂</div>
+        </div>
+        <div class="compteur-box">
+            <div style="font-size:1.5rem;font-weight:bold;color:#fc8181;" id="compteur-femelles">0</div>
+            <div style="font-size:0.75rem;color:#718096;">Femelles ♀</div>
+        </div>
+        <div class="compteur-box">
+            <div style="font-size:1.5rem;font-weight:bold;color:#68d391;" id="compteur-total">0</div>
+            <div style="font-size:0.75rem;color:#718096;">Total</div>
+        </div>
+    </div>
+    <div id="rappels-global" style="display:none;background:#132840;border:1px solid #2a5080;border-radius:8px;padding:10px;margin-bottom:15px;"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <label style="margin:0;font-size:0.85rem;color:#a0aec0;">Statut :</label>
+        <select id="filtre-statut" onchange="filtrerCheptelParStatut(this.value)" style="flex:1;">
+            <option value="Tous">Tous les oiseaux</option>
+            <option value="Acquis">✅ Acquis seulement</option>
+            <option value="En attente">🕓 En attente d'obtention</option>
+            <option value="Futur">🛒 Achat futur</option>
+        </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <label style="margin:0;font-size:0.85rem;color:#a0aec0;">Sexe :</label>
+        <select id="filtre-sexe" onchange="filtrerCheptelParSexe(this.value)" style="flex:1;">
+            <option value="Tous">Tous</option>
+            <option value="Mâle">♂ Mâles</option>
+            <option value="Femelle">♀ Femelles</option>
+        </select>
+        <label style="margin:0;font-size:0.85rem;color:#a0aec0;">Stade :</label>
+        <select id="filtre-stade" onchange="filtrerCheptelParStade(this.value)" style="flex:1;">
+            <option value="Tous">Tous</option>
+            <option value="Adulte">Adultes</option>
+            <option value="Jeune">Jeunes</option>
+        </select>
+    </div>
+    <div class="cat-bloc" style="margin-bottom:15px;">
+        <button class="cat-header" onclick="toggleSuggestionsAccouplement()" style="border-left:4px solid #68d391;">
+            <span>🧬 Suggestions d'accouplement</span>
+            <span class="cat-arrow" id="sugg-arrow">▼</span>
+        </button>
+        <div id="sugg-liste" style="display:none;padding:8px;"></div>
+    </div>
+    <button id="btn-simuler-voliere" class="btn-simuler-voliere" onclick="simulerDepuisVoliere()">🧬 Simuler l'accouplement sélectionné</button>
+    <button id="btn-annuler-acc" class="btn-annuler-acc" onclick="annulerAccouplement()">✕ Annuler la sélection</button>
+    <h2>🐦 Oiseaux en Volière</h2>
+    <p style="font-size:0.78rem;color:#718096;margin-top:-8px;margin-bottom:10px;">🧬 Accoupler sur un ♂ puis une ♀ pour simuler leur descendance</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button onclick="exporterCheptel()" style="flex:1;padding:10px;background:#1e3a5f;color:#f5d020;border:1px solid #2a5080;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.82rem;">📤 Exporter</button>
+        <button onclick="afficherImport()"  style="flex:1;padding:10px;background:#1e3a5f;color:#a0aec0;border:1px solid #2a5080;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.82rem;">📥 Importer</button>
+    </div>
+    <div id="export-zone" style="display:none;">
+        <p style="font-size:0.8rem;color:#a0aec0;margin-bottom:6px;">📋 Copiez ce texte et sauvegardez-le :</p>
+        <textarea id="export-content" readonly onclick="this.focus();this.select();"
+            style="width:100%;height:150px;padding:8px;font-size:0.7rem;font-family:monospace;background:#0a1520;color:#e2e8f0;border:1px solid #2a5080;border-radius:4px;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+            <button onclick="copierExport()" style="flex:1;padding:8px;background:#f5d020;color:#0d1b2a;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">📋 Copier</button>
+            <button onclick="document.getElementById('export-zone').style.display='none'"
+                style="flex:1;padding:8px;background:#1e3a5f;color:#a0aec0;border:1px solid #2a5080;border-radius:4px;cursor:pointer;">✕ Fermer</button>
+        </div>
+    </div>
+    <div id="import-zone" style="display:none;">
+        <p style="font-size:0.8rem;color:#a0aec0;margin-bottom:6px;">📋 Collez ici votre sauvegarde JSON :</p>
+        <textarea id="import-content" style="width:100%;height:120px;padding:8px;font-size:0.75rem;" placeholder="Collez votre JSON ici..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+            <button onclick="importerCheptel()" style="flex:1;padding:8px;background:#f5d020;color:#0d1b2a;border:none;border-radius:4px;cursor:pointer;font-weight:bold;">✅ Importer</button>
+            <button onclick="document.getElementById('import-zone').style.display='none'" style="flex:1;padding:8px;background:#1e3a5f;color:#a0aec0;border:1px solid #2a5080;border-radius:4px;cursor:pointer;">✕ Annuler</button>
+        </div>
+    </div>
+    <div id="liste-cheptel"></div>
+
+    <div class="cat-bloc" style="margin-top:20px;margin-bottom:20px;">
+        <button class="cat-header" onclick="toggleFormulaireAjout()" style="border-left:4px solid #f5d020;">
+            <span>➕ Enregistrer un oiseau</span>
+            <span class="cat-arrow" id="add-form-arrow">▶</span>
+        </button>
+        <div id="add-form-panel" class="parent-box" style="display:none;">
+        <label>Numéro de Bague :</label>
+        <input type="text" id="bague-input" placeholder="Ex : FR-2026-X123">
+        <label>Sexe :</label>
+        <select id="sexe-input" onchange="mettreAJourPorteursLS('add')">
+            <option value="♂ Mâle">Mâle (♂)</option>
+            <option value="♀ Femelle">Femelle (♀)</option>
+        </select>
+        <label>Mélanine de base :</label>
+        <select id="add-base" onchange="mettreAJourMutationsCheptel()">
+            <option value="Noir">Noir (Oxydé Classique)</option>
+            <option value="Lipochrome">Lipochrome Pur (Sans Mélanine)</option>
+            <option value="Sauvage">Sauvage (Non Muté)</option>
+        </select>
+
+        <button type="button" onclick="toggleMutationsGrid('add')" style="width:100%;margin-top:10px;padding:8px;background:#132840;color:#f5d020;border:1px solid #2a5080;border-radius:6px;cursor:pointer;text-align:left;font-size:0.85rem;">
+            <span id="add-mut-arrow">▶</span> 🧬 Mutations & Porteurs <span id="add-mut-resume" style="color:#a0aec0;font-weight:normal;"></span>
+        </button>
+        <div id="add-mut-panel" style="display:none;">
+        <label style="margin-top:10px;">Mutations visuelles :</label>
+        <div class="checkbox-group" id="add-mutations" onchange="mettreAJourResumeMutations('add')">
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Brun"> Brun <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Agate"> Agate <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <div style="font-size:0.7rem;color:#a0aec0;grid-column:1/-1;margin:-2px 0 4px;">💡 Isabelle = Brun + Agate cochés ensemble</div>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Pastel"> Pastel <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Satiné"> Satiné <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <div style="font-size:0.7rem;color:#a0aec0;grid-column:1/-1;margin:-2px 0 4px;">💡 Agate et Satiné partagent le même gène (un oiseau Agate peut être porteur Satiné, mais pas visuellement les deux)</div>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Ivoire"> Ivoire <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Opale"> Opale</label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Topaze"> Topaze</label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Phaeo"> Phaeo</label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Eumo"> Eumo</label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Onyx"> Onyx</label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Jaspe"> Jaspe <span style="color:#f6ad55;font-size:0.7rem;">(SD)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-mut" value="Cobalt"> Cobalt <span style="color:#f6ad55;font-size:0.7rem;">(SD)</span></label>
+        </div>
+
+        <label style="margin-top:10px;">Gènes Porteurs :</label>
+        <div id="add-porteurs-avertissement" style="display:none;font-size:0.72rem;color:#fc8181;margin-bottom:6px;">⚠️ Une femelle ne peut jamais être porteuse d'une mutation liée au sexe</div>
+        <div class="checkbox-group" id="add-porteurs" onchange="mettreAJourResumeMutations('add')">
+            <div id="add-porteurs-ls" style="display:contents;">
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Brun"> porteur Brun <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Agate"> porteur Agate <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Pastel"> porteur Pastel <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Satiné"> porteur Satiné <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Ivoire"> porteur Ivoire <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+            </div>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Opale"> porteur Opale <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Topaze"> porteur Topaze <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Phaeo"> porteur Phaeo <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Eumo"> porteur Eumo <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Onyx"> porteur Onyx <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+            <label class="checkbox-label"><input type="checkbox" name="add-port" value="Blanc Récessif"> porteur Blanc Récessif <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+        </div>
+        </div>
+        <label>Structure de Plume :</label>
+        <select id="add-plume">
+            <option value="Intense">Intense</option>
+            <option value="Schimmel">Non-Intense (Schimmel)</option>
+            <option value="Mosaïque">Mosaïque</option>
+        </select>
+        <label>Fond Lipochrome :</label>
+        <select id="add-fond">
+            <option value="Jaune">Jaune</option><option value="Rouge">Rouge</option>
+            <option value="Orangé">Orangé</option>
+            <option value="Blanc Dominant">Blanc Dominant</option>
+            <option value="Blanc Récessif">Blanc Récessif</option>
+            <option value="Ivoire Jaune">Ivoire Jaune</option>
+        </select>
+        <label>Statut d'acquisition :</label>
+        <select id="add-statut">
+            <option value="Acquis">✅ Acquis</option>
+            <option value="En attente">🕓 En attente d'obtention</option>
+            <option value="Futur">🛒 Achat futur</option>
+        </select>
+        <label>Stade :</label>
+        <select id="add-stade">
+            <option value="Adulte">Adulte</option>
+            <option value="Jeune">Jeune</option>
+        </select>
+        <label>Cage actuelle (optionnel) :</label>
+        <select id="add-cage" onchange="afficherSelecteurCase('add')"><option value="">— Aucune —</option></select>
+        <input type="hidden" id="add-case" value="0">
+        <div id="add-case-selector" style="display:none;"></div>
+        <label>Notes (optionnel) :</label>
+        <input type="text" id="notes-input" placeholder="Ex : Acheté en 2026">
+        <label>Photo (optionnelle) :</label>
+        <input type="file" id="photo-input" accept="image/*" style="border:none;padding:5px 0;color:#a0aec0;">
+        <button class="btn-add" onclick="ajouterOiseau()">💾 Enregistrer au Registre</button>
+        </div>
+    </div>
+</div>
+
+<!-- PAGE : CAGES -->
+<div id="page-cages" class="app-page">
+    <h1>🏠 Gestion des Cages</h1>
+    <div id="cages-alertes"></div>
+    <div id="cages-liste"></div>
+    <div class="cat-bloc" style="margin-top:15px;">
+        <button class="cat-header" onclick="toggleAjoutCage()" style="border-left:4px solid #f6ad55;">
+            <span>➕ Nouvelle cage</span>
+            <span class="cat-arrow" id="ajout-cage-arrow">▶</span>
+        </button>
+        <div id="ajout-cage-panel" style="display:none;padding:8px;">
+            <label>Nom de la cage :</label>
+            <input type="text" id="nouvelle-cage-nom" placeholder="Ex : Cage 3, Volière Nord...">
+            <label>Type :</label>
+            <select id="nouvelle-cage-type">
+                <option value="elevage">🐣 Élevage</option>
+                <option value="voliere">🕊️ Volière / Vol</option>
+                <option value="repos">😴 Repos / Hivernage</option>
+                <option value="quarantaine">🚧 Quarantaine</option>
+                <option value="infirmerie">🏥 Infirmerie</option>
+                <option value="exposition">🏆 Exposition / Concours</option>
+                <option value="transport">🚗 Transport</option>
+            </select>
+            <label>Modèle :</label>
+            <select id="nouvelle-cage-modele" onchange="onChangeModeleCage()">
+                <option value="simple">Simple (1 case)</option>
+                <option value="double">Double (2 cases)</option>
+                <option value="batterie">Batterie (plusieurs niveaux)</option>
+            </select>
+            <div id="champ-disposition-double" style="display:none;">
+                <label>Disposition :</label>
+                <select id="nouvelle-cage-disposition-double">
+                    <option value="enfilade">En enfilade (côte à côte)</option>
+                    <option value="superpose">Superposé (empilé)</option>
+                </select>
+            </div>
+            <div id="champ-batterie-niveaux" style="display:none;">
+                <label>Niveaux :</label>
+                <div id="nouvelle-cage-niveaux-liste"></div>
+                <button type="button" class="btn-voir" onclick="ajouterNiveauForm()" style="margin-top:6px;">➕ Ajouter un niveau</button>
+            </div>
+            <button class="btn-add" onclick="ajouterCage()" style="margin-top:8px;">💾 Créer la cage</button>
+        </div>
+    </div>
+</div>
+
+<!-- FICHE OISEAU (modal d'édition) -->
+<div id="fiche-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:4000;overflow-y:auto;padding:16px 10px;">
+  <div id="fiche-modal" style="max-width:480px;margin:0 auto;background:#132840;border:1px solid #2a5080;border-radius:10px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <strong style="color:#f5d020;font-size:1.05rem;">🐦 Fiche de l'oiseau</strong>
+      <button onclick="fermerFiche()" style="background:none;border:none;color:#a0aec0;font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="text-align:center;margin-bottom:12px;">
+      <img id="fiche-photo-principale" src="" style="width:110px;height:110px;object-fit:cover;border-radius:8px;border:2px solid #2a5080;display:none;">
+      <div id="fiche-photo-placeholder" style="width:110px;height:110px;border-radius:8px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto;">🐦</div>
+      <label style="display:block;margin-top:6px;font-size:0.78rem;color:#a0aec0;">Changer la photo principale :</label>
+      <input type="file" id="fiche-photo-input" accept="image/*" onchange="changerPhotoPrincipale()" style="border:none;color:#a0aec0;font-size:0.78rem;">
+    </div>
+
+    <label style="color:#f5d020;">📷 Galerie photos :</label>
+    <div id="fiche-galerie" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;"></div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input type="file" id="fiche-galerie-input" accept="image/*" style="border:none;color:#a0aec0;font-size:0.78rem;flex:1;">
+      <button onclick="ajouterPhotoGalerie()" style="padding:6px 10px;background:#1e3a5f;color:#f5d020;border:1px solid #2a5080;border-radius:4px;cursor:pointer;font-size:0.75rem;white-space:nowrap;">➕ Ajouter</button>
+    </div>
+
+    <hr style="border-color:#2a5080;margin:14px 0;">
+
+    <button type="button" onclick="toggleInfosOiseau()" style="width:100%;margin-top:4px;padding:8px;background:#0f2035;color:#f5d020;border:1px solid #2a5080;border-radius:6px;cursor:pointer;text-align:left;font-size:0.9rem;font-weight:bold;">
+        <span id="fiche-infos-arrow">▶</span> 📋 Informations de l'oiseau
+    </button>
+    <div id="fiche-infos-panel" style="display:none;">
+    <label>Numéro de Bague :</label>
+    <input type="text" id="fiche-bague">
+    <label>Sexe :</label>
+    <select id="fiche-sexe" onchange="mettreAJourPorteursLS('fiche');mettreAJourCodeGenetiqueFiche()">
+        <option value="♂ Mâle">Mâle (♂)</option>
+        <option value="♀ Femelle">Femelle (♀)</option>
+    </select>
+    <label style="margin-top:10px;">Mélanine de base :</label>
+    <select id="fiche-base" onchange="mettreAJourMutations('fiche')">
+        <option value="Noir">Noir (Oxydé Classique)</option>
+        <option value="Lipochrome">Lipochrome Pur (Sans Mélanine)</option>
+        <option value="Sauvage">Sauvage (Non Muté)</option>
+    </select>
+
+    <button type="button" onclick="toggleMutationsGrid('fiche')" style="width:100%;margin-top:10px;padding:8px;background:#0f2035;color:#f5d020;border:1px solid #2a5080;border-radius:6px;cursor:pointer;text-align:left;font-size:0.85rem;">
+        <span id="fiche-mut-arrow">▶</span> 🧬 Mutations & Porteurs <span id="fiche-mut-resume" style="color:#a0aec0;font-weight:normal;"></span>
+    </button>
+    <div id="fiche-code-genetique" style="font-family:monospace;font-size:0.75rem;color:#4a5568;margin-top:4px;"></div>
+    <div id="fiche-mut-panel" style="display:none;">
+    <label style="margin-top:10px;">Mutations visuelles :</label>
+    <div class="checkbox-group" id="fiche-mutations" onchange="mettreAJourResumeMutations('fiche');mettreAJourCodeGenetiqueFiche()">
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Brun"> Brun <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Agate"> Agate <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Pastel"> Pastel <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Satiné"> Satiné <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Ivoire"> Ivoire <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Opale"> Opale</label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Topaze"> Topaze</label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Phaeo"> Phaeo</label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Eumo"> Eumo</label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Onyx"> Onyx</label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Jaspe"> Jaspe <span style="color:#f6ad55;font-size:0.7rem;">(SD)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-mut" value="Cobalt"> Cobalt <span style="color:#f6ad55;font-size:0.7rem;">(SD)</span></label>
+    </div>
+
+    <label style="margin-top:10px;">Gènes Porteurs :</label>
+    <div id="fiche-porteurs-avertissement" style="display:none;font-size:0.72rem;color:#fc8181;margin-bottom:6px;">⚠️ Une femelle ne peut jamais être porteuse d'une mutation liée au sexe</div>
+    <div class="checkbox-group" id="fiche-porteurs" onchange="mettreAJourResumeMutations('fiche');mettreAJourCodeGenetiqueFiche()">
+        <div id="fiche-porteurs-ls" style="display:contents;">
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Brun"> porteur Brun <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Agate"> porteur Agate <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Pastel"> porteur Pastel <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Satiné"> porteur Satiné <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Ivoire"> porteur Ivoire <span style="color:#63b3ed;font-size:0.7rem;">(LS)</span></label>
+        </div>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Opale"> porteur Opale <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Topaze"> porteur Topaze <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Phaeo"> porteur Phaeo <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Eumo"> porteur Eumo <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Onyx"> porteur Onyx <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+        <label class="checkbox-label"><input type="checkbox" name="fiche-port" value="Blanc Récessif"> porteur Blanc Récessif <span style="color:#a0aec0;font-size:0.7rem;">(RL)</span></label>
+    </div>
+    </div>
+
+    <label>Structure de Plume :</label>
+    <select id="fiche-plume">
+        <option value="Intense">Intense</option>
+        <option value="Schimmel">Non-Intense (Schimmel)</option>
+        <option value="Mosaïque">Mosaïque</option>
+    </select>
+    <label>Fond Lipochrome :</label>
+    <select id="fiche-fond">
+        <option value="Jaune">Jaune</option><option value="Rouge">Rouge</option>
+        <option value="Orangé">Orangé</option>
+        <option value="Blanc Dominant">Blanc Dominant</option>
+        <option value="Blanc Récessif">Blanc Récessif</option>
+        <option value="Ivoire Jaune">Ivoire Jaune</option>
+    </select>
+    <label>Statut d'acquisition :</label>
+    <select id="fiche-statut">
+        <option value="Acquis">✅ Acquis</option>
+        <option value="En attente">🕓 En attente d'obtention</option>
+        <option value="Futur">🛒 Achat futur</option>
+    </select>
+    <label>Stade :</label>
+    <select id="fiche-stade">
+        <option value="Adulte">Adulte</option>
+        <option value="Jeune">Jeune</option>
+    </select>
+    <label>Cage actuelle :</label>
+    <select id="fiche-cage" onchange="onChangeFicheCage()"><option value="">— Aucune —</option></select>
+    <input type="hidden" id="fiche-case" value="0">
+    <div id="fiche-case-selector" style="display:none;"></div>
+    <label>Notes :</label>
+    <input type="text" id="fiche-notes">
+    </div>
+
+    <button class="btn-add" onclick="sauvegarderFiche()" style="margin-top:10px;">💾 Enregistrer les modifications</button>
+
+    <hr style="border-color:#2a5080;margin:14px 0;">
+
+    <strong style="color:#f5d020;font-size:0.9rem;">🩺 Soins & alimentation</strong>
+    <label style="margin-top:8px;">Poids :</label>
+    <input type="text" id="fiche-poids" placeholder="Ex : 18g">
+    <label>Dernier soin :</label>
+    <input type="text" id="fiche-dernier-soin" placeholder="Ex : vermifuge le 10/07/2026">
+    <label>Alimentation :</label>
+    <input type="text" id="fiche-alimentation" placeholder="Ex : mélange graines + pâtée œuf">
+    <button class="btn-add" onclick="sauvegarderSoins()" style="margin-top:8px;">💾 Enregistrer soins & alimentation</button>
+
+    <hr style="border-color:#2a5080;margin:14px 0;">
+
+    <strong style="color:#f5d020;font-size:0.9rem;">🔔 Rappels & échéances</strong>
+    <div id="fiche-rappels-liste" style="max-height:150px;overflow-y:auto;margin:8px 0;font-size:0.8rem;"></div>
+    <select id="fiche-rappel-type" style="margin-bottom:6px;">
+        <option value="Soin">🩺 Soin</option>
+        <option value="Mue">🪶 Mue</option>
+        <option value="Reproduction">🥚 Reproduction</option>
+        <option value="Autre">📌 Autre</option>
+    </select>
+    <input type="text" id="fiche-rappel-titre" placeholder="Ex : Vermifuge">
+    <div style="display:flex;gap:6px;">
+      <input type="date" id="fiche-rappel-date" style="flex:1;">
+      <button onclick="ajouterRappel()" style="padding:6px 12px;background:#f5d020;color:#0d1b2a;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap;">➕</button>
+    </div>
+
+    <hr style="border-color:#2a5080;margin:14px 0;">
+
+    <strong style="color:#f5d020;font-size:0.9rem;">🧬 Simulations liées</strong>
+    <div id="fiche-simulations-liees" style="max-height:150px;overflow-y:auto;margin:8px 0;font-size:0.78rem;"></div>
+
+    <hr style="border-color:#2a5080;margin:14px 0;">
+
+    <strong style="color:#f5d020;font-size:0.9rem;">📝 Journal de suivi</strong>
+    <div id="fiche-journal-liste" style="max-height:150px;overflow-y:auto;margin:8px 0;font-size:0.8rem;"></div>
+    <div style="display:flex;gap:6px;">
+      <input type="text" id="fiche-journal-input" placeholder="Nouvelle entrée..." style="flex:1;">
+      <button onclick="ajouterEntreeJournal()" style="padding:6px 12px;background:#f5d020;color:#0d1b2a;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap;">➕</button>
+    </div>
+  </div>
+</div>
+
+<!-- FICHE OISEAU (modal lecture seule) -->
+<div id="vue-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:4000;overflow-y:auto;padding:16px 10px;">
+  <div style="max-width:480px;margin:0 auto;background:#132840;border:1px solid #2a5080;border-radius:10px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <strong style="color:#f5d020;font-size:1.05rem;">👁️ Fiche de l'oiseau</strong>
+      <button onclick="fermerVue()" style="background:none;border:none;color:#a0aec0;font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="vue-contenu"></div>
+    <button class="btn-add" onclick="passerEnModification()" style="margin-top:14px;">✏️ Modifier cette fiche</button>
+  </div>
+</div>
+
+<!-- PAGE 2b : REPRODUCTION -->
+<div id="page-reproduction" class="app-page">
+    <h1>🐣 Reproduction</h1>
+    <button class="btn-add" onclick="toggleNouvelleReproduction()">➕ Nouvelle reproduction</button>
+    <div id="nouvelle-repro-panel" class="parent-box" style="display:none;margin:12px 0;">
+        <label>Père (♂) :</label>
+        <select id="repro-pere"></select>
+        <label>Mère (♀) :</label>
+        <select id="repro-mere"></select>
+        <label>Saison :</label>
+        <input type="text" id="repro-saison" placeholder="Ex : 2026">
+        <label>Cage (optionnel) :</label>
+        <select id="repro-cage"><option value="">— Aucune —</option></select>
+        <label>Note (optionnel) :</label>
+        <input type="text" id="repro-note" placeholder="Ex : 1er couple testé">
+        <button class="btn-add" onclick="creerReproduction()">💾 Créer la reproduction</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:12px 0;flex-wrap:wrap;">
+        <select id="filtre-repro-saison" onchange="filtrerReproParSaison(this.value)" style="flex:1;min-width:120px;">
+            <option value="Tous">Toutes saisons</option>
+        </select>
+        <select id="filtre-repro-etat" onchange="filtrerReproParEtat(this.value)" style="flex:1;min-width:120px;">
+            <option value="Tous">Tous états</option>
+            <option value="Prévue">Prévue</option>
+            <option value="En cours">En cours</option>
+            <option value="Terminée">Terminée</option>
+            <option value="Annulée">Annulée</option>
+        </select>
+    </div>
+    <div id="liste-reproductions"></div>
+
+    <div class="cat-bloc" style="margin-top:20px;margin-bottom:20px;">
+        <button class="cat-header" onclick="toggleCorbeilleRepro()" style="border-left:4px solid #742a2a;">
+            <span>🗑️ Corbeille</span>
+            <span class="cat-arrow" id="repro-corbeille-arrow">▼</span>
+        </button>
+        <div id="repro-corbeille-liste" style="display:none;padding:8px;"></div>
+    </div>
+</div>
+
+<!-- MODAL DÉTAIL REPRODUCTION -->
+<div id="repro-detail-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:4000;overflow-y:auto;padding:16px 10px;">
+  <div style="max-width:480px;margin:0 auto;background:#132840;border:1px solid #2a5080;border-radius:10px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <strong style="color:#f5d020;font-size:1.05rem;">🐣 Détail de la reproduction</strong>
+      <button onclick="fermerDetailReproduction()" style="background:none;border:none;color:#a0aec0;font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+    <div id="repro-detail-contenu"></div>
+  </div>
+</div>
+
+<!-- PAGE 3 : LEXIQUE -->
+<div id="page-lexique" class="app-page">
+    <h1>📚 Lexique & Encyclopédie</h1>
+    <div style="position:sticky;top:0;background:#0d1b2a;z-index:100;padding:8px 0 10px;">
+        <input type="text" id="lexique-search" placeholder="🔍 Rechercher..."
+            oninput="filtrerLexique(this.value)"
+            style="width:100%;padding:10px;border:2px solid #f5d020;border-radius:20px;font-size:0.9rem;outline:none;background:#0f2035;color:#e2e8f0;">
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+        <button onclick="switchTab('sommaire')" id="tab-sommaire" class="lex-tab active-tab">🗂️ Sommaire</button>
+        <button onclick="switchTab('cours')"     id="tab-cours"     class="lex-tab">📚 Cours</button>
+        <button onclick="switchTab('com')"       id="tab-com"       class="lex-tab">🐦 Variétés & Races</button>
+        <button onclick="switchTab('fiches')"    id="tab-fiches"    class="lex-tab">📖 Fiches</button>
+        <button onclick="switchTab('glossaire')" id="tab-glossaire" class="lex-tab">📖 Glossaire</button>
+        <button onclick="switchTab('tuto')"      id="tab-tuto"      class="lex-tab">❓ Tutoriel</button>
+        <button onclick="switchTab('faq')"       id="tab-faq"       class="lex-tab">🙋 FAQ</button>
+    </div>
+    <div id="lex-section-sommaire">
+        <h2>🗂️ Sommaire</h2>
+        <div class="step-box"><b>📚 Cours</b><br>
+            <a href="#" class="sommaire-link" onclick="allerA('cours',null);return false;">🧬 La Génétique du Canari — 7 chapitres, du gène au carré de Punnett</a>
+        </div>
+        <div class="step-box"><b>📚 Variétés & Races</b><br>
+            <a href="#" class="sommaire-link" onclick="allerA('com',null);return false;">🌿 Sauvage, 🏆 COM (D00-D09), 🔬 Hors-COM, 📐 Postures, 🎵 Chants, 🌍 Hybrides — tout dans un seul onglet</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('fiches',null);return false;">📖 222 fiches détaillées (histoire, description, génétique)</a>
+        </div>
+        <div class="step-box"><b>🧬 Notions de génétique</b><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-alertes');return false;">⚠️ Alertes & Dangers</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-melanines');return false;">Mélanines</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-lipochromes');return false;">🎨 Lipochromes</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-mutations');return false;">🧬 Mutations (Liée au sexe, Récessif libre, Semi-dominant)</a>
+        </div>
+        <div class="step-box"><b>📜 Histoire du canari</b><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-histoire');return false;">Des îles Canaries à aujourd'hui (résumé)</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-grandsnoms');return false;">👤 Grands Noms de la Canariculture</a>
+        </div>
+        <div class="step-box"><b>📋 Pratique & Vie de l'éleveur</b><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-dictionnaire');return false;">📚 Dictionnaire A-Z</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-materiel');return false;">🛠️ Matériel & Équipement</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-alimentation');return false;">🌾 Alimentation & Coloration</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-concours');return false;">🏅 Concours, Bagues & Standards C.O.M.</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('glossaire','anc-cycle');return false;">📅 Cycle de l'Éleveur (saisonnalité, reproduction, baguage)</a>
+        </div>
+        <div class="step-box"><b>❓ Aide</b><br>
+            <a href="#" class="sommaire-link" onclick="allerA('tuto',null);return false;">Tutoriel — comment utiliser CanaGen</a><br>
+            <a href="#" class="sommaire-link" onclick="allerA('faq',null);return false;">🙋 FAQ — questions fréquentes</a>
+        </div>
+        <div class="step-box"><b>🌐 Ressources externes</b> <span style="opacity:0.6;font-size:0.75rem;">(vérifiées)</span><br>
+            <a href="https://conforni.org/" target="_blank" class="sommaire-link">🌍 C.O.M. — Confédération Ornithologique Mondiale (fédération internationale, standards officiels)</a>
+            <a href="https://www.ornithologies.fr/" target="_blank" class="sommaire-link">🇫🇷 UOF — Union Ornithologique de France (COM France)</a>
+            <div style="font-size:0.7rem;color:#a0aec0;margin-top:4px;">Autres ressources (forums, ouvrages) à venir une fois vérifiées.</div>
+        </div>
+        <div class="step-box" style="opacity:0.6;"><b>🎬 Tutoriels image / vidéo</b><br>À venir.</div>
+    </div>
+<div id="lex-section-cours" style="display:none;">
+<div class="lexique-box" style="opacity:0.75;border-left-color:#805ad5;"><div class="lexique-definition">📚 Un vrai cours à suivre dans l'ordre, pas une liste de définitions éparses — pensé pour quelqu'un qui découvre le sujet en partant de zéro (étudiant, débutant curieux). D'autres sujets (Biologie & Comportement, Devenir Éleveur...) viendront s'ajouter ici.</div></div>
+<h3 style="color:#a0c4e8;margin:16px 0 8px;">🧬 Sujet : La Génétique du Canari</h3>
+<div class="cat-bloc" id="lex-cat-cours-genetique-ch1" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch1')" style="border-left:4px solid #63b3ed;"><span>Chapitre 1 — Qu'est-ce qu'un gène ?</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch1">▼</span></button><div id="cours-cat-list-cours-genetique-ch1" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p><b>Un gène</b>, c'est une instruction précise stockée dans l'ADN, à un endroit fixe d'un chromosome. Chaque gène contrôle un caractère particulier : la couleur des yeux, la structure de la plume, la couleur de fond...</p>
+<p>Un canari possède globalement les <b>mêmes gènes</b> que n'importe quel autre canari — ce qui change d'un individu à l'autre, ce ne sont pas les gènes eux-mêmes, mais leurs <b>versions</b>. C'est là qu'intervient la notion d'allèle, vue au chapitre suivant.</p>
+<p>Concrètement, pour la génétique du canari, il suffit de retenir qu'il existe un petit nombre de gènes qui nous intéressent (celui de la mélanine noire/brune, celui de la structure <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a>, celui du fond lipochrome...) et que <b>chacun</b> peut exister sous plusieurs versions.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-genetique-ch2" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch2')" style="border-left:4px solid #63b3ed;"><span>Chapitre 2 — Allèle, génotype et phénotype</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch2">▼</span></button><div id="cours-cat-list-cours-genetique-ch2" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p><b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-allele');return false;">Allèle</a></b> = une version particulière d'un gène. Par exemple, pour le gène qui contrôle la mélanine brune : il existe la version "sauvage" (non mutée, le canari garde son eumélanine noire) et la version "mutée <a href="#" class="terme-lien" onclick="allerA('glossaire','brun');return false;">Brun</a>" (l'eumélanine noire est inhibée).</p>
+<p>Un oiseau possède <b>deux copies</b> de chaque gène autosomique (une héritée du père, une de la mère). Ces deux copies peuvent être :</p>
+<ul>
+<li><b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-homozygote');return false;">Homozygote</a></b> : les deux copies sont identiques (ex : deux allèles "sauvage", ou deux allèles "Brun"). On dit alors que l'oiseau est <b>pur</b> pour ce caractère.</li>
+<li><b>Hétérozygote</b> : les deux copies sont différentes (ex : un allèle "sauvage" + un allèle "Brun"). Selon le rapport de force entre les deux allèles (chapitre 3), l'oiseau peut soit montrer le caractère muté, soit le porter caché.</li>
+</ul>
+<p>Deux mots à ne jamais confondre :</p>
+<ul>
+<li><b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-phenotype');return false;">Génotype</a></b> : ce que l'oiseau a réellement dans ses gènes (invisible à l'œil nu, sauf en le testant par ses descendants).</li>
+<li><b>Phénotype</b> : ce que l'oiseau montre visuellement (son plumage tel qu'on le voit).</li>
+</ul>
+<p>Un oiseau <b>porteur</b> d'une mutation récessive a un génotype qui contient l'allèle muté, mais un phénotype qui ne le montre pas — c'est tout l'enjeu de la génétique appliquée à l'élevage : deviner le génotype caché à partir de ce qu'on observe et de la lignée.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-genetique-ch3" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch3')" style="border-left:4px solid #805ad5;"><span>Chapitre 3 — Dominant, récessif, codominant : qui l'emporte ?</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch3">▼</span></button><div id="cours-cat-list-cours-genetique-ch3" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Quand un oiseau est hétérozygote (deux allèles différents), le résultat visuel dépend du <b>rapport de force</b> entre les deux versions du gène. Chez le canari, on rencontre 4 cas de figure :</p>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">1. Récessif</div><div class="lexique-definition">L'allèle muté ne s'exprime QUE s'il est présent en double exemplaire (homozygote). En hétérozygote, l'oiseau est visuellement normal mais <b>porteur</b> caché. Exemples chez le canari : <a href="#" class="terme-lien" onclick="allerA('glossaire','opale');return false;">Opale</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','topaze');return false;">Topaze</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','onyx');return false;">Onyx</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','phaeo');return false;">Phaeo</a> (tous des mutations « récessif libre »).</div></div>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">2. Dominant</div><div class="lexique-definition">Un seul exemplaire de l'allèle muté suffit à faire apparaître le caractère — même en hétérozygote. Exemple : Blanc Dominant (un seul parent porteur du gène transmet un plumage blanc visible dès la génération suivante).</div></div>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">3. Codominant (ou semi-dominant)</div><div class="lexique-definition">Les DEUX allèles s'expriment en même temps, donnant un phénotype intermédiaire, différent des deux formes pures. Exemple emblématique chez le canari : le fond lipochrome — un oiseau Jaune pur croisé avec un oiseau Rouge pur ne donne PAS un mélange 50/50 de jaunes et de rouges, il donne <b>100% d'Orangé</b> (le phénotype intermédiaire, ni tout à fait jaune ni tout à fait rouge). Le <a href="#" class="terme-lien" onclick="allerA('glossaire','jaspe');return false;">Jaspe</a> fonctionne sur le même principe.</div></div>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">4. Lié au sexe</div><div class="lexique-definition">Un cas particulier qui ne dépend pas du rapport de force entre allèles, mais de l'emplacement du gène sur un chromosome sexuel. Développé en détail au chapitre 4, car c'est une des plus grandes différences entre la génétique du canari (ou de tout oiseau) et celle des mammifères.</div></div>
+<p>💡 <b>Piège classique</b> : « récessif » ne veut pas dire « caché pour toujours ». Un porteur récessif transmet quand même l'allèle muté à sa descendance — il faut juste que le partenaire apporte lui aussi cet allèle pour que le caractère redevienne visible.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-genetique-ch4" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch4')" style="border-left:4px solid #f6ad55;"><span>Chapitre 4 — Lié au sexe : la spécificité aviaire (ZZ/ZW)</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch4">▼</span></button><div id="cours-cat-list-cours-genetique-ch4" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>C'est probablement la plus grande surprise pour quelqu'un qui a appris la génétique sur des exemples humains ou félins à l'école : chez les oiseaux, le système des chromosomes sexuels est <b>inversé</b> par rapport aux mammifères.</p>
+<table class="lex-table"><tr><th></th><th>Mammifères (humains, chats...)</th><th>Oiseaux (canari inclus)</th></tr>
+<tr><td>Mâle</td><td>XY (hétérogamétique)</td><td><b>ZZ</b> (homogamétique)</td></tr>
+<tr><td>Femelle</td><td>XX (homogamétique)</td><td><b>ZW</b> (hétérogamétique)</td></tr></table>
+<p>Chez le canari, c'est donc le <b>mâle</b> qui a deux chromosomes sexuels identiques (ZZ), et la <b>femelle</b> qui n'en a qu'un seul de chaque type (ZW). Cette différence a une conséquence énorme pour toutes les mutations dont le gène se trouve sur le chromosome Z (<a href="#" class="terme-lien" onclick="allerA('glossaire','brun');return false;">Brun</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a>, Satiné, <a href="#" class="terme-lien" onclick="allerA('glossaire','pastel');return false;">Pastel</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','ivoire');return false;">Ivoire</a> chez le canari) :</p>
+<ul>
+<li>Un <b>mâle</b> a deux chromosomes Z : il peut donc être homozygote (« <b>pur</b> » pour la mutation) ou hétérozygote (« <b>porteur</b> » caché, comme pour un gène récessif classique).</li>
+<li>Une <b>femelle</b> n'a qu'un seul chromosome Z : elle ne peut donc JAMAIS être porteuse cachée d'une mutation liée au sexe. Dès qu'elle a l'allèle muté sur son unique Z, elle le montre — on parle de femelle « <b>visuelle</b> », jamais de femelle « pure » (elle n'a de toute façon qu'un seul exemplaire possible).</li>
+</ul>
+<p>C'est exactement pour cette raison que le calculateur de l'app affiche « <b>Pur</b> » uniquement pour des résultats mâles et « <b>Visuel</b> » uniquement pour des résultats femelles sur les mutations liées au sexe — ce n'est pas un hasard d'affichage, c'est la biologie qui l'impose.</p>
+<p>💡 Conséquence pratique très utile pour un éleveur : un croisement <b>mâle porteur × femelle visuelle</b> d'une mutation liée au sexe permet de reconnaître le sexe des jeunes dès l'éclosion, rien qu'à leur couleur — c'est ce qu'on appelle un accouplement « autosexable ».</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-genetique-ch5" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch5')" style="border-left:4px solid #48bb78;"><span>Chapitre 5 — Le carré de Punnett, pas à pas</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch5">▼</span></button><div id="cours-cat-list-cours-genetique-ch5" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Le carré de Punnett (du nom du généticien britannique Reginald Punnett, qui l'a formalisé au début du XXᵉ siècle en s'appuyant sur les lois de Mendel) est simplement un <b>tableau</b> qui permet de visualiser toutes les combinaisons possibles entre les gamètes (cellules reproductrices) de deux parents.</p>
+<p><b>La méthode, étape par étape</b>, sur l'exemple le plus simple possible : un gène récessif libre à un seul locus, comme l'<a href="#" class="terme-lien" onclick="allerA('glossaire','opale');return false;">Opale</a>.</p>
+<p><b>Étape 1 — Identifier les allèles de chaque parent.</b> Notons "o" l'allèle Opale (récessif) et "+" l'allèle sauvage (normal). Prenons un père <b>porteur</b> Opale (génotype +o) et une mère <b>porteuse</b> Opale elle aussi (génotype +o).</p>
+<p><b>Étape 2 — Lister les gamètes possibles de chaque parent.</b> Chaque parent transmet UN SEUL de ses deux allèles à chaque descendant (au hasard, 50/50). Le père +o peut transmettre "+" ou "o". La mère +o peut transmettre "+" ou "o" aussi.</p>
+<p><b>Étape 3 — Construire le tableau (2 lignes × 2 colonnes ici, une par gamète possible de chaque parent) :</b></p>
+<table class="lex-table"><tr><th></th><th>Père transmet +</th><th>Père transmet o</th></tr>
+<tr><td><b>Mère transmet +</b></td><td>++ (pur sauvage)</td><td>+o (porteur)</td></tr>
+<tr><td><b>Mère transmet o</b></td><td>+o (porteur)</td><td>oo (Opale visuel)</td></tr></table>
+<p><b>Étape 4 — Lire le résultat.</b> Les 4 cases du tableau sont équiprobables (25% chacune). En regroupant les génotypes identiques : 1 case ++ (25%), 2 cases +o (50%), 1 case oo (25%). D'où le résultat classique <b>25% pur sauvage / 50% porteur / 25% Opale visuel</b> — c'est exactement la ségrégation 1:2:1 que le calculateur de l'app affiche pour ce type de croisement.</p>
+<p>💡 Le carré de Punnett se complexifie dès qu'on suit plusieurs gènes à la fois (voir le chapitre 6) : chaque gène supplémentaire multiplie le nombre de colonnes/lignes par 2, mais la méthode de base — lister les gamètes possibles, croiser toutes les combinaisons, regrouper — reste rigoureusement la même.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-genetique-ch6" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch6')" style="border-left:4px solid #48bb78;"><span>Chapitre 6 — Exemple complet : un vrai croisement du Calculateur expliqué</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch6">▼</span></button><div id="cours-cat-list-cours-genetique-ch6" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Voyons maintenant comment le calculateur de l'app combine plusieurs gènes à la fois, avec un exemple réel : <b>♂ <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a> porteur <a href="#" class="terme-lien" onclick="allerA('glossaire','brun');return false;">Brun</a> × ♀ <a href="#" class="terme-lien" onclick="allerA('glossaire','isabelle');return false;">Isabelle</a></b>.</p>
+<p><b>Ce qu'on sait des parents :</b></p>
+<ul>
+<li>Le père est visuellement Agate (donc homozygote pour l'allèle Agate sur son locus mélanine-réduction) et porteur caché de Brun (hétérozygote sur le gène Brun, lié au sexe).</li>
+<li>La mère est Isabelle — c'est-à-dire homozygote Agate <b>et</b> visuellement Brun en même temps (rappel : Isabelle = Agate + Brun réunis chez le même oiseau, cf. Glossaire Histoire/Chant&Posture).</li>
+</ul>
+<p><b>La méthode consiste à traiter chaque locus indépendamment, puis à combiner les probabilités :</b></p>
+<p><b>Locus Agate</b> (père et mère tous les deux homozygotes Agate) → 100% des jeunes seront Agate. Rien d'aléatoire ici, les deux parents ne peuvent transmettre que l'allèle Agate.</p>
+<p><b>Locus Brun</b> (lié au sexe — le père est hétérozygote porteur, la mère est homozygote visuelle) → il faut ici distinguer fils et filles, à cause du chapitre 4 :</p>
+<ul>
+<li><b>Fils</b> (ZZ, reçoivent un Z du père ET un Z de la mère) : 50% reçoivent le Z-Brun du père + le Z-Brun de la mère → Brun visuel. 50% reçoivent le Z-sauvage du père + le Z-Brun de la mère → porteurs Brun (non-Brun visuellement, car ils n'ont qu'un seul allèle muté).</li>
+<li><b>Filles</b> (ZW, reçoivent obligatoirement le W de la mère et un Z du père) : 50% reçoivent le Z-Brun du père → Brun visuel. 50% reçoivent le Z-sauvage du père → non-Brun visuel (et jamais porteuses, cf. chapitre 4).</li>
+</ul>
+<p><b>En combinant les deux loci</b>, le résultat final est : <b>Jeunes mâles</b> → 50% Isabelle (Agate+Brun visuel) / 50% Agate porteurs Brun. <b>Jeunes femelles</b> → 50% Isabelle / 50% Agate (non porteuses, jamais possible chez une femelle). C'est très exactement ce genre de calcul, multiplié sur tous les loci concernés (mélanine, fond, structure de plume), que fait automatiquement le moteur du Calculateur à chaque simulation.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-genetique-ch7" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-genetique-ch7')" style="border-left:4px solid #e53e3e;"><span>Chapitre 7 — Les lois de Mendel, appliquées au canari</span><span class="cat-arrow" id="cours-cat-arrow-cours-genetique-ch7">▼</span></button><div id="cours-cat-list-cours-genetique-ch7" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Gregor Mendel, moine et botaniste autrichien, a posé au XIXᵉ siècle (à partir de ses expériences sur les petits pois) les 3 grandes lois qui gouvernent toujours la génétique classique aujourd'hui — canari compris :</p>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">1ʳᵉ loi — Uniformité des hybrides de F1</div><div class="lexique-definition">Quand on croise deux parents <b>homozygotes purs</b> pour des allèles différents d'un même gène, tous les descendants de la première génération (F1) sont identiques entre eux — puisqu'ils sont tous forcément hétérozygotes de la même façon. Exemple canari : Jaune pur × Rouge pur → 100% des jeunes sont Orangé, sans exception (codominance, cf. chapitre 3).</div></div>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">2ᵉ loi — Ségrégation (disjonction) des allèles</div><div class="lexique-definition">Lors de la formation des gamètes, les deux allèles d'un gène se séparent, et chaque gamète n'en reçoit qu'un seul, au hasard. C'est exactement le mécanisme qui rend le carré de Punnett possible (chapitre 5) — sans cette loi, un parent hétérozygote transmettrait toujours « un mélange » plutôt qu'un allèle entier et net.</div></div>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">3ᵉ loi — Assortiment indépendant</div><div class="lexique-definition">Des gènes situés sur des chromosomes <b>différents</b> se transmettent indépendamment les uns des autres — c'est ce qui permet de traiter chaque locus séparément puis de multiplier les probabilités entre elles (comme au chapitre 6). ⚠️ Cette loi a une exception connue chez le canari : deux gènes situés sur le <b>même</b> chromosome Z (comme <a href="#" class="terme-lien" onclick="allerA('glossaire','brun');return false;">Brun</a> et <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a>) peuvent, rarement, se dissocier par un phénomène de recombinaison appelé <b>crossing-over</b> (cf. Glossaire, section Mutations) — c'est d'ailleurs par ce mécanisme que la série <a href="#" class="terme-lien" onclick="allerA('glossaire','isabelle');return false;">Isabelle</a> a pu apparaître au départ.</div></div>
+</div></div></div></div>
+<h3 style="color:#a0c4e8;margin:24px 0 8px;">🐦 Sujet : Biologie & Comportement du Canari</h3>
+<div class="cat-bloc" id="lex-cat-cours-biologie-ch1" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-biologie-ch1')" style="border-left:4px solid #63b3ed;"><span>Chapitre 1 — Anatomie du canari : la plume et le squelette</span><span class="cat-arrow" id="cours-cat-arrow-cours-biologie-ch1">▼</span></button><div id="cours-cat-list-cours-biologie-ch1" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Avant de parler de génétique ou de couleurs, il faut comprendre l'oiseau lui-même. Le canari domestique descend du <b>Serin des Canaries</b> (<i>Serinus canaria</i>), petit passereau de Macaronésie (îles Canaries, Açores, Madère) — pour l'histoire complète de sa domestication, voir le Glossaire, section Histoire & Chronologie.</p>
+<p><b>La plume</b>, unité de base du plumage, se compose de plusieurs parties : le <b>calamus</b> (la base creuse ancrée dans la peau), le <b>rachis</b> (l'axe central rigide) et les <b>barbes</b> de part et d'autre, elles-mêmes maintenues bien à plat par des <b>barbules à crochets</b> qui s'agrippent entre elles comme un velcro naturel.</p>
+<p>C'est cette structure de plume qui détermine le rendu <b><a href="#" class="terme-lien" onclick="allerA('glossaire','intensif');return false;">Intensif</a></b> (plume courte, serrée, <a href="#" class="terme-lien" onclick="allerA('glossaire','anc-lipochromes');return false;">lipochrome</a> fixé jusqu'à la pointe) ou <b><a href="#" class="terme-lien" onclick="allerA('glossaire','schimmel');return false;">Schimmel</a></b> (plume plus longue et souple, bord incolore « givré »).</p>
+<p>Le squelette du canari est très léger — os creux pour la plupart, une adaptation indispensable au vol. Le <b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-brechet');return false;">bréchet</a></b> (sternum proéminent) sert de point d'ancrage aux muscles pectoraux, les plus puissants du corps de l'oiseau.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-biologie-ch2" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-biologie-ch2')" style="border-left:4px solid #63b3ed;"><span>Chapitre 2 — Les systèmes vitaux : respiration, digestion, chant</span><span class="cat-arrow" id="cours-cat-arrow-cours-biologie-ch2">▼</span></button><div id="cours-cat-list-cours-biologie-ch2" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p><b>Le système respiratoire</b> du canari est l'un des plus performants du monde animal. Contrairement aux mammifères, l'oiseau possède <b>9 sacs aériens</b> reliés à des poumons rigides qui ne se dilatent pas eux-mêmes. L'air y circule en <b>double flux unidirectionnel</b> : l'oxygène est extrait aussi bien à l'inspiration qu'à l'expiration — un système tellement efficace qu'il a longtemps servi à détecter le grisou dans les mines de charbon (voir Glossaire, Anecdotes & Culture).</p>
+<p><b>Le <a href="#" class="terme-lien" onclick="allerA('glossaire','systeme-digestif');return false;">système digestif</a></b> suit ce trajet : bec (pas de dents, décorticage à la langue) → <b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-jabot');return false;">jabot</a></b> (poche de stockage et d'humidification des graines) → <b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-proventricule');return false;">proventricule</a></b> (sucs gastriques) → <b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-gesier');return false;">gésier</a></b> (broyage mécanique à l'aide de petits graviers avalés, le « grit ») → intestin, puis cloaque.</p>
+<p><b>Le chant</b> est produit par la <b>syrinx</b>, un organe unique aux oiseaux situé à la jonction basse de la trachée et des deux bronches. Ses muscles gauche et droit fonctionnent indépendamment — le canari peut ainsi émettre deux notes différentes en même temps (harmonies biphoniques), ce qui explique la richesse de son chant comparée à la plupart des autres animaux.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-biologie-ch3" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-biologie-ch3')" style="border-left:4px solid #805ad5;"><span>Chapitre 3 — Vie sociale et communication</span><span class="cat-arrow" id="cours-cat-arrow-cours-biologie-ch3">▼</span></button><div id="cours-cat-list-cours-biologie-ch3" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Le canari est un oiseau <b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-gregaire');return false;">grégaire</a></b> à l'état sauvage : il vit naturellement en petits groupes, ce qui explique pourquoi un canari élevé seul sans aucun contact (visuel ou sonore) avec d'autres oiseaux peut développer un mal-être. Cela ne veut pas dire qu'il faut absolument le loger en groupe — beaucoup de canaris de compagnie vivent très bien seuls avec un bon contact humain — mais qu'il reste sensible à la présence ou à l'absence d'autres oiseaux.</p>
+<p><b>Communication</b> : en dehors du chant (largement traité aux chapitres Chant du Glossaire), le canari communique par le <b>langage corporel</b> — plumage gonflé (froid, détente, ou au contraire signe de maladie selon le contexte), queue et ailes en mouvement, <a href="#" class="terme-lien" onclick="allerA('glossaire','4-famille-posture-redressee');return false;">position</a> sur le perchoir. Un oiseau qui reste immobile au fond de la cage, plumes ébouriffées en permanence, les yeux mi-clos en pleine journée, montre des signes qui doivent alerter (cf. chapitre 6).</p>
+<p>Le mâle chante pour deux raisons biologiques principales : <b>défendre son territoire</b> face à d'autres mâles, et <b>séduire une femelle</b> en période de reproduction — le chant s'intensifie nettement dès que la photopériode s'allonge au printemps (voir Glossaire, Cycle de l'Éleveur).</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-biologie-ch4" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-biologie-ch4')" style="border-left:4px solid #f6ad55;"><span>Chapitre 4 — La mue et le cycle de vie annuel</span><span class="cat-arrow" id="cours-cat-arrow-cours-biologie-ch4">▼</span></button><div id="cours-cat-list-cours-biologie-ch4" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>La <b>mue</b> est le renouvellement annuel complet du plumage. Chez l'adulte, elle a lieu en fin d'été (juillet à octobre selon les individus) et dure généralement 6 à 8 semaines — une période coûteuse en énergie, pendant laquelle l'oiseau a besoin d'un apport accru en protéines et en acides aminés soufrés (méthionine, cystine) pour fabriquer des plumes solides.</p>
+<p>Pendant <a href="#" class="terme-lien" onclick="allerA('glossaire','la-mue');return false;">la mue</a>, le canari peut paraître moins actif, chanter moins, et se montrer plus sensible au stress — c'est normal, à condition que le plumage repousse bien et de façon homogène. Un bain quotidien (à disposition, pas forcé) aide à ramollir les fourreaux des nouvelles plumes.</p>
+<p>Le rythme de vie du canari suit donc un <b>cycle annuel</b> assez marqué : repos hivernal (photopériode courte) → préparation puis reproduction au printemps (photopériode croissante) → mue en été → retour au repos. Ce cycle est développé en détail dans le Glossaire, section Cycle de l'Éleveur.</p>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-biologie-ch5" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-biologie-ch5')" style="border-left:4px solid #48bb78;"><span>Chapitre 5 — Longévité et besoins fondamentaux</span><span class="cat-arrow" id="cours-cat-arrow-cours-biologie-ch5">▼</span></button><div id="cours-cat-list-cours-biologie-ch5" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Un canari bien soigné vit en moyenne <b>10 à 15 ans</b> — certains individus dépassent cette fourchette avec de très bons soins, d'autres moins selon la génétique individuelle, l'environnement et la qualité de vie.</p>
+<p><b>Les besoins de base incombent à respecter, dans l'ordre d'importance :</b></p>
+<ul>
+<li><b>Alimentation</b> variée et adaptée à la saison (voir Glossaire, Alimentation & Coloration)</li>
+<li><b>Espace</b> suffisant pour voler, pas seulement sautiller entre deux <a href="#" class="terme-lien" onclick="allerA('glossaire','perchoirs');return false;">perchoirs</a> trop rapprochés</li>
+<li><b>Lumière</b> naturelle ou artificielle à spectre complet, avec un vrai cycle jour/nuit respecté</li>
+<li><b>Hygiène</b> de la cage — nettoyage régulier, prévention des parasites (voir Glossaire, Santé/Mue/Pathologies)</li>
+<li><b>Stimulation</b> — un environnement totalement vide et silencieux n'est pas naturel pour un oiseau <a href="#" class="terme-lien" onclick="allerA('glossaire','dict-gregaire');return false;">grégaire</a> et vocal</li>
+</ul>
+</div></div></div></div><div class="cat-bloc" id="lex-cat-cours-biologie-ch6" style="margin-bottom:12px;"><button class="cat-header" onclick="toggleCatLexique('cours','cours-biologie-ch6')" style="border-left:4px solid #e53e3e;"><span>Chapitre 6 — Reconnaître un canari en bonne santé (ou pas)</span><span class="cat-arrow" id="cours-cat-arrow-cours-biologie-ch6">▼</span></button><div id="cours-cat-list-cours-biologie-ch6" style="display:none;"><div class="lexique-box"><div class="lexique-definition">
+<p>Savoir reconnaître un canari en bonne santé, et repérer tôt les signes d'un problème, fait toute la différence pour agir à temps.</p>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">Signes de bonne santé</div><div class="lexique-definition">Plumage lisse et brillant, œil vif et ouvert, se tient droit sur le perchoir (pas au fond de la cage), mange et boit normalement, chante ou piaille activement, fientes bien formées.</div></div>
+<div class="lexique-box" style="margin:10px 0;"><div class="lexique-term">Signes qui doivent alerter</div><div class="lexique-definition">Plumes ébouriffées en permanence (même en pleine journée dans une pièce tempérée), oiseau prostré au fond de la cage ou sur un seul perchoir bas, yeux mi-clos de façon prolongée, respiration difficile ou bruyante, perte d'appétit, fientes anormales (couleur, consistance), perte de poids visible (bréchet très saillant). Voir Glossaire, section Santé/Mue/Pathologies pour le détail des maladies les plus fréquentes.</div></div>
+<p>💡 Un canari est un animal qui a tendance à <b>masquer ses symptômes</b> le plus longtemps possible (réflexe de survie hérité de la vie sauvage, où montrer une faiblesse attire les prédateurs) — quand les signes deviennent visibles, la situation est souvent déjà avancée. C'est pour cette raison qu'il vaut mieux observer son oiseau quotidiennement plutôt que d'attendre un signe évident.</p>
+</div></div></div></div></div>
+    <div id="lex-section-com" style="display:none;">
+        <div class="lexique-box" style="opacity:0.75;border-left-color:#63b3ed;"><div class="lexique-definition">🐦 Catalogue complet : le phénotype sauvage d'origine, les <b>590 variétés officielles COM</b>, les mutations hors-COM, les races de posture, les races de chant, et les espèces croisées avec le canari. Pour approfondir une mutation en particulier, va plutôt dans <a href="#" class="sommaire-link" style="display:inline;" onclick="allerA('glossaire','anc-mutations');return false;">📖 Glossaire</a>.</div></div>
+        <div id="lex-sauvage-container"></div>
+        <div id="lex-com-container"></div>
+        <div id="lex-hc-container"></div>
+        <div id="lex-posture-container"></div>
+        <div id="lex-chant-container"></div>
+        <div id="lex-hy-container"></div>
+    </div>
+    <div id="lex-section-fiches" style="display:none;">
+        <div class="lexique-box" style="opacity:0.75;border-left-color:#f6ad55;"><div class="lexique-definition">📖 <b>222 fiches détaillées</b> (histoire, description, génétique) — une fiche par combinaison série + mutation + fond, couvrant ses 4 patrons (Intensif/Schimmel/Mosaïque M/F). Accessible directement via le bouton "📖 Fiche complète" sur chaque variété COM.</div></div>
+        <input type="text" id="fiches-search" placeholder="🔎 Rechercher une fiche (ex: Noir Jaspe Jaune)" oninput="filtrerFichesDetaillees(this.value)" style="width:100%;margin-bottom:10px;">
+        <div id="lex-fiches-container"></div>
+    </div>
+    <div id="lex-section-glossaire" style="display:none;">
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(0)" style="border-left:4px solid #e53e3e;">
+                <span id="anc-alertes">⚠️ Alertes & Dangers</span>
+                <span class="cat-arrow" id="glo-arrow-0">▲</span>
+            </button>
+            <div class="cat-list" id="glo-list-0" style="display:flex;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box" style="border-left-color:#e53e3e;">
+                    <div class="lexique-term" style="color:#fc8181;">🔴 LÉTAL — 25% mortalité dans l'œuf</div>
+                    <div class="lexique-definition">Uniquement pour les jeunes <b>Double Facteur</b> : <b>Intense × Intense</b> ou <b>Blanc Dominant × Blanc Dominant</b>. Seulement 25% de la portée est concernée.</div>
+                </div>
+                <div class="lexique-box" style="border-left-color:#d69e2e;">
+                    <div class="lexique-term" style="color:#f6ad55;">🟡 DÉCONSEILLÉ</div>
+                    <div class="lexique-definition"><b>Mosaïque × Mosaïque</b> (perd la localisation du lipochrome).</div>
+                </div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(1)" style="border-left:4px solid #f6ad55;">
+                <span id="anc-melanines">🔬 Mélanines & Lipochromes</span>
+                <span class="cat-arrow" id="glo-arrow-1">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-1" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="melanine-de-base">Mélanine de base</div><div class="lexique-definition">Pigments foncés synthétisés par l'oiseau et déposés dans la structure de la plume. Chez le canari, les mélanines regroupent l'eumélanine (noire ou brune) et la phéomélanine (brun-rouge). Elles dessinent le patron (stries, flammements) sur la couleur de fond.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="noir">Noir (type sauvage)</div><div class="lexique-definition">Série mélanique ancestrale caractérisée par une présence maximale d'eumélanine noire oxydée (stries larges, longues et continues du dos à la tête). Le bec, les pattes, les ongles et le sous-plumage doivent être d'un noir le plus sombre possible.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="brun">Brun</div><div class="lexique-definition">Série mélanique issue d'une mutation ayant inhibé la synthèse de l'eumélanine noire. L'eumélanine brune est conservée et s'exprime sous forme de stries chocolat/brun chaud sur fond teinté de phéomélanine. Les pattes et le bec sont de couleur chair foncé.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="agate">Agate</div><div class="lexique-definition">Série mélanique issue de la première réduction (dilution) de la série Noire. L'eumélanine noire est concentrée au centre de la plume, créant des stries fines, courtes et très bien détachées (dessin dit « en grains de riz »). Absence de phéomélanine au fond.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="isabelle">Isabelle</div><div class="lexique-definition">Série mélanique issue de la combinaison de la réduction <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a> et de la mutation Brune chez le même oiseau. Les stries sont fines, courtes et de couleur beige/noisette clair sur un fond net et pur sans phéomélanine.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="pheomelanine">Phéomélanine</div><div class="lexique-definition">Pigment mélanique brun-roux à brun-rougeâtre localisé sur la bordure périphérique de la plume. Elle donne une impression de voile chaud entre les stries. Absente ou très réduite chez les séries diluées (<a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','isabelle');return false;">Isabelle</a>, Eumo).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="anc-lipochromes">Lipochrome (définition)</div><div class="lexique-definition">Pigment caroténoïde d'origine alimentaire fixé par l'organisme dans la plume, constituant la couleur de fond (la « robe ») du canari. Il s'exprime en Jaune, Rouge ou Blanc.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="jaune">Jaune</div><div class="lexique-definition"><a href="#" class="terme-lien" onclick="allerA('glossaire','anc-lipochromes');return false;">Lipochrome</a> naturel de base du canari domestique (lutéine). Il doit être vif, lumineux et uniforme, tirant vers le jaune citron.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="rouge">Rouge</div><div class="lexique-definition"><a href="#" class="terme-lien" onclick="allerA('glossaire','anc-lipochromes');return false;">Lipochrome</a> artificiel introduit par hybridation avec le Tarin du Venezuela (<i>Spinus cucullatus</i>). Il nécessite un apport alimentaire spécifique en caroténoïdes (canthaxanthine, bêta-carotène) durant la pousse de la plume pour exprimer sa teinte éclatante.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="blanc-dominant">Blanc dominant</div><div class="lexique-definition">Caractère lipochromique dû à un gène dominant à effet suspensif partiel. Le plumage est visuellement blanc pur, mais conserve une légère incrustation de lipochrome (jaune ou rouge) sur le bord externe des grandes rémiges (ailes). <b>⚠️ Double Facteur = 25% létal.</b></div></div>
+                <div class="lexique-box"><div class="lexique-term" id="blanc-recessif">Blanc récessif</div><div class="lexique-definition">Caractère lipochromique dû à un gène récessif libre bloquant totalement l'assimilation et la fixation de tous les caroténoïdes (y compris la vitamine A au niveau hépatique). L'oiseau est d'un blanc absolu, sans aucune incrustation. La peau présente un aspect légèrement bleuté.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="ivoire">Ivoire</div><div class="lexique-definition">Mutation liée au sexe réduisant la structure du lipochrome. Le jaune devient jaune paille doux, le rouge devient rose orangé (saumon) et la structure de la plume devient plus douce et soyeuse.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="mosaique">Mosaïque</div><div class="lexique-definition">Patron de répartition du lipochrome régi par un gène autosomique récessif. Le lipochrome est absent du corps (qui reste blanc craie) et se concentre exclusivement sur des zones d'élection précises : masque facial (mâle) ou trait oculaire (femelle), épaulettes, poitrine et croupion.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="intensif">Intensif</div><div class="lexique-definition">Structure de plume courte et étroite où le lipochrome est fixé jusqu'à la pointe extrême des barbules. Le plumage est serré contre le corps et la couleur est saturée, vive et uniforme, sans aucun voile blanc. <b>⚠️ Intense × Intense = 25% mortalité dans l'œuf.</b></div></div>
+                <div class="lexique-box"><div class="lexique-term" id="schimmel">Schimmel (Non-Intense)</div><div class="lexique-definition">Structure de plume plus large, plus longue et plus souple. Le lipochrome s'arrête juste avant l'extrémité de la plume, laissant un fin liseré incolore qui donne au plumage un aspect givré ou saupoudré de neige. Toujours accoupler <b>Intense × Schimmel</b>.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(2)" style="border-left:4px solid #63b3ed;">
+                <span id="anc-mutations">🧬 Mutations</span>
+                <span class="cat-arrow" id="glo-arrow-2">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-2" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="lie-au-sexe">Lié au Sexe (Z-lié récessif)</div><div class="lexique-definition">Mode de transmission génétique porté par le chromosome sexuel Z. Chez les oiseaux (mâles ZZ, femelles ZW), une femelle exprimant une mutation liée au sexe ne peut pas être porteuse cachée (elle l'exprime obligatoirement). Seul le mâle peut être porteur hétérozygote.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="pastel">Pastel</div><div class="lexique-definition">Mutation liée au sexe diluant l'eumélanine et étalant la phéomélanine. Chez le Noir, elle produit un effet « flou » ou ardoisé ; chez le <a href="#" class="terme-lien" onclick="allerA('glossaire','brun');return false;">Brun</a> et l'<a href="#" class="terme-lien" onclick="allerA('glossaire','isabelle');return false;">Isabelle</a>, elle donne une teinte pastel très douce. Le bord des rémiges et rectrices présente un motif étagé caractéristique.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="recessif-libre">Récessif Libre (Autosomal)</div><div class="lexique-definition">Mode de transmission génétique situé sur un chromosome non sexuel (autosome). La mutation nécessite d'être présente en double exemplaire (homozygote) pour s'exprimer visuellement. Les mâles comme les femelles peuvent en être porteurs sains.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="opale">Opale</div><div class="lexique-definition">Mutation autosomique récessive inversant la localisation de la mélanine dans la plume : la mélanine se dépose sur la face inférieure (ventrale) de la plume, donnant des reflets bleutés/gris acier caractéristiques sur le dos. Plume souvent plus tendre — alterner Visuel × Porteur pour éviter le ramollissement excessif.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="topaze">Topaze</div><div class="lexique-definition">Mutation autosomique récessive concentrant l'eumélanine le long du rachis de la plume (liseré central très net) tout en éclaircissant la bordure. Yeux rouge foncé/rubis à la naissance, fonçant fortement à l'âge adulte (paraissent noirs en lumière normale, rouges sous éclairage direct). Très recherché sur la série <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a> (dessin « en grains de riz » très net sur fond pur).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="eumo">Eumo</div><div class="lexique-definition">Mutation autosomique récessive éliminant totalement la phéomélanine et diluant l'eumélanine. Stries très fines et nettes le long du rachis, yeux rouge rubis bien visibles à l'âge adulte (plus sombres que Satiné/<a href="#" class="terme-lien" onclick="allerA('glossaire','phaeo');return false;">Phaeo</a>, plus rouges que <a href="#" class="terme-lien" onclick="allerA('glossaire','topaze');return false;">Topaze</a>).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="onyx">Onyx</div><div class="lexique-definition">Mutation autosomique récessive provoquant une hyper-pigmentation mélanique sombre et diffuse. Le dessin strié s'en trouve élargi et assombri, donnant une tête et un manteau très chargés en suie — aspect mat, sans le brillant métallique de l'<a href="#" class="terme-lien" onclick="allerA('glossaire','opale');return false;">Opale</a>.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="phaeo">Phaeo (Phéomélanine)</div><div class="lexique-definition">Mutation autosomique récessive éliminant totalement l'eumélanine (noire et brune) et poussant la phéomélanine à son maximum en bordure de plume. Le centre de la plume, dépourvu d'eumélanine, apparaît blanc/lipochrome, tandis que la bordure brun-rougeâtre chaude forme un dessin « en écailles ». Yeux rouge vif. Fonctionne particulièrement bien sur la série <a href="#" class="terme-lien" onclick="allerA('glossaire','brun');return false;">Brun</a>.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="jaspe">Jaspe</div><div class="lexique-definition">Mutation à hérédité libre et dominante, <b>sans facteur létal</b> (confirmé par plusieurs sources francophones et anglophones indépendantes). Simple Facteur : dilution partielle (~50%) des mélanines, zone de dilution longitudinale caractéristique sur les rémiges/rectrices. Double Facteur : dilution plus poussée (~80%), oiseau très clair mais <b>parfaitement viable</b> — à ne pas confondre avec une tare. Meilleur contraste sur la série Noire.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="kobalt">Kobalt (Cobalt)</div><div class="lexique-definition">Mutation semi-dominante (parfois traitée comme récessive selon la souche). Bloque l'éclaircissement naturel du ventre : la mélanine s'étend jusqu'au bas-ventre et au cloaque, donnant un oiseau uniformément foncé du bec à la queue, sans zone claire sur la poitrine.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="satine">Satiné</div><div class="lexique-definition">Mutation liée au sexe qui partage le <b>même locus qu'<a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a></b> (3ᵉ allèle) : un oiseau peut être visuellement Agate tout en étant porteur caché de Satiné, mais jamais visuellement les deux à la fois. Élimine totalement l'eumélanine noire et la phéomélanine, ne conservant que l'eumélanine brune sous forme de fines stries noisette très nettes sur fond d'un blanc quasi pur. Les yeux sont rouge vif dès la naissance.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="crossing-over">Crossing-over</div><div class="lexique-definition">Chez un mâle porteur de <b>deux mutations liées au sexe différentes en même temps</b> (ex : classique porteur brun ET agate), un échange rare de chromosomes pendant la formation des gamètes peut produire un résultat inattendu, hors des probabilités calculées ici. C'est peu fréquent mais documenté chez les éleveurs — si un résultat semble « impossible » sur un tel accouplement, ce n'est pas forcément une erreur.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="pur-et-visuel-dans-les-resultats">"Pur" et "Visuel" dans les résultats</div><div class="lexique-definition">Sur les mutations liées au sexe (Brun, Agate, Satiné, <a href="#" class="terme-lien" onclick="allerA('glossaire','pastel');return false;">Pastel</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','ivoire');return false;">Ivoire</a>), le calculateur affiche <b>"Pur"</b> uniquement pour les mâles et <b>"Visuel"</b> uniquement pour les femelles — pas un hasard : le mâle a 2 chromosomes Z et peut être homozygote ("pur"), la femelle n'en a qu'1 et exprime automatiquement la mutation dès qu'elle la porte (toujours "visuelle", jamais "pure"). Sur les mutations récessives libres (Opale, Topaze, Phaeo, Onyx...), "Visuel" a un 2ᵉ sens : il distingue un oiseau qui <b>montre</b> la mutation d'un oiseau qui la <b>porte seulement</b> sans la montrer (porteur).</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(3)" style="border-left:4px solid #9f7aea;">
+                <span id="anc-histoire">📜 Histoire & Chronologie</span>
+                <span class="cat-arrow" id="glo-arrow-3">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-3" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="des-iles-canaries-a-la-domestication-mondiale">Des îles Canaries à la domestication mondiale</div><div class="lexique-definition">Le canari domestique descend du <b>Serin des Canaries</b> (<i>Serinus canaria</i>), petit passereau originaire de Macaronésie (îles Canaries, Açores, Madère). À l'état sauvage, son plumage est cryptique : vert-olive strié de noir et de brun, ventre jaunâtre — idéal pour se camoufler dans la végétation.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="1402-1496-decouverte-et-conquete">1402-1496 — Découverte et conquête</div><div class="lexique-definition">1402 : début de la conquête des îles Canaries par Jean de Béthencourt pour la couronne de Castille. 1496 : soumission définitive des Guanches — marins et soldats espagnols, séduits par le chant du serin sauvage, en rapportent les premiers spécimens en Espagne.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="xvie-siecle-le-monopole-espagnol-et-le-secret-des-moines">XVIe siècle — Le monopole espagnol et le secret des moines</div><div class="lexique-definition">Les moines espagnols contrôlent l'élevage et la vente du canari dans toute l'Europe. Pour empêcher la reproduction hors d'Espagne, ils ne vendent que des <b>mâles chanteurs</b>, à prix exorbitant, gardant les femelles cachées dans les monastères.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="1622-le-naufrage-de-l-ile-d-elbe">1622 — Le naufrage de l'île d'Elbe</div><div class="lexique-definition">Selon la tradition ornithologique, un navire espagnol chargé de canaris fait naufrage près de l'île d'Elbe. Les oiseaux échappés s'hybrident avec les serins cini locaux ; les Italiens les capturent, découvrent les femelles et brisent le monopole espagnol — l'élevage se répand alors dans toute l'Europe continentale.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="xviiie-xixe-siecle-l-age-d-or-et-la-specialisation-regionale">XVIIIe-XIXe siècle — L'âge d'or et la spécialisation régionale</div><div class="lexique-definition">Allemagne (Harz) : les mineurs de Saint-Andreasberg sélectionnent le futur <a href="#" class="terme-lien" onclick="allerA('glossaire','harzer-roller');return false;">Harzer Roller</a> sur la douceur du chant, et emmènent ces canaris au fond des mines comme détecteurs de coup de grisou et de monoxyde de carbone. Angleterre : sélection des races de posture (Lizard, Norwich, Crested). Flandres et France : premiers canaris de couleur (Jaune, Blanc).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="1921-la-revolution-genetique-et-le-canari-rouge">1921 — La révolution génétique et le canari rouge</div><div class="lexique-definition">Le généticien allemand Hans Duncker et <a href="#" class="terme-lien" onclick="allerA('glossaire','karl-reich');return false;">Karl Reich</a> croisent le <b>Tarin du Venezuela</b> (<i>Spinus cucullatus</i>, plumage rouge) avec un canari jaune. L'introduction réussie du Facteur Rouge démontre pour la première fois qu'on peut transférer une couleur d'une espèce à l'autre par hybridation puis rétrocroisement.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="1950-2000-l-explosion-des-mutations-de-couleur">1950-2000 — L'explosion des mutations de couleur</div><div class="lexique-definition">Découverte et fixation successive de <a href="#" class="terme-lien" onclick="allerA('glossaire','pastel');return false;">Pastel</a>, Opale, Satiné, <a href="#" class="terme-lien" onclick="allerA('glossaire','topaze');return false;">Topaze</a>, Eumo, Onyx. Structuration internationale de l'ornithologie avec la création de la C.O.M. (Confédération Ornithologique Mondiale) et de ses standards sur 100 points.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="xxie-siecle-l-elevage-genetique-de-precision">XXIe siècle — L'élevage génétique de précision</div><div class="lexique-definition">Homologation des mutations modernes comme le <a href="#" class="terme-lien" onclick="allerA('glossaire','jaspe');return false;">Jaspe</a> (issu du Tarin de Magellan) et le <a href="#" class="terme-lien" onclick="allerA('glossaire','kobalt');return false;">Kobalt</a>. Usage croissant du calcul de consanguinité (CoI) et des outils numériques pour stabiliser les nouvelles souches sans dépression de consanguinité.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(4)" style="border-left:4px solid #38b2ac;">
+                <span id="anc-chant">🎵 Chant & Posture</span>
+                <span class="cat-arrow" id="glo-arrow-4">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-4" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="harzer-roller">Harzer Roller (Harz)</div><div class="lexique-definition">Canari de chant allemand (région du Harz), chant grave, doux et roulé, émis <b>bec fermé</b>. 6 tours jugés en concours COM : <b>Hohlrollen</b> (roulades creuses, le tour le plus important), <b>Knorren</b> (timbres sourds, très grave), <b>Wasserrollen</b> (roulades d'eau), <b>Hohlklingeln</b> (timbres creux, doux et métalliques), <b>Pfeifen</b> (flûtes, notes isolées et profondes), <b>Glucken</b> (gloucoups, rappelle la glousse d'une poule). Écolage en cabinet de chant avec un « maître chanteur ».</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="timbrado-espanol">Timbrado Español</div><div class="lexique-definition">Canari de chant espagnol, chant joyeux, puissant, rythmé et métallique, émis <b>bec ouvert</b>. Deux styles : Clásico (notes continues/timbres) et Discontinuo (phrases interrompues, improvisation). Tours principaux : <b>Timbres</b> (notes continues rapides, sonorité métallique), <b>Cascabeles</b> (grelots, sons légers et rapides), <b>Floreos</b> (variations lentes et articulées, la plus haute expression du Timbrado), <b>Campana</b> (note frappée façon cloche).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="malinois">Malinois (Waterslager)</div><div class="lexique-definition">Canari de chant belge (région de Malines), répertoire dominé par des sons d'eau. Tours principaux : <b>Klokkende</b> (eau frappée, « klok-klok-klok » lent et profond), <b>Bollende</b> (eau bouillonnante), <b>Waterrol</b> (roulade d'eau rapide façon ruisseau). Plumage traditionnellement lipochrome jaune, parfois tacheté de mélanine.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="canaris-de-posture">Canaris de posture (généralités)</div><div class="lexique-definition">Jugés selon la grille d'étalon C.O.M. (sur 100 points) : taille, forme, maintien sur le perchoir, qualité de plume, état général. Regroupés en 5 grandes familles : Frisés, Lisses de Forme, Huppés, Posture Redressée, et Dessin.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="1-famille-des-frises">1. Famille des Frisés</div><div class="lexique-definition">Sélectionnés sur la présence, la symétrie et la qualité des frisures. <b>Frisé Parisien</b> (19 cm mini, le géant : frisures très développées sur manteau/jabot/nageoires, plumes de coq, ongles en tire-bouchon). <b>Frisé du Nord</b> (17-18 cm, posture droite, pas d'ongles en tire-bouchon). <b>Frisé du Sud</b> (15 cm, posture en « 7 », frisures concentrées jabot/flancs, dos lisse). <b>Fiorino</b> (11 cm max, miniature, huppé ou tête lisse, frisures légères).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="2-famille-des-lisses-de-forme">2. Famille des Lisses de Forme</div><div class="lexique-definition">Sélectionnés sur la rondeur, la finesse ou la puissance de la silhouette. <b>Gloster</b> (11 cm max, rond, Corona huppé × Consort lisse — accouplement Corona×Consort obligatoire). <b>Raza Española</b> (11,5 cm max, corps fin et cylindrique « en stylo »). <b>Fife Fancy</b> (11 cm max, miniature du Border). <b>Border Fancy</b> (14,5 cm, sphère parfaite, posture à 60°). <b>Norwich</b> (16 cm, massif, sourcils épais). <b>Yorkshire</b> (19 cm, silhouette en « carotte inversée », très redressé).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="3-famille-des-huppes">3. Famille des Huppés (hors Gloster)</div><div class="lexique-definition"><b>Crested</b> (huppé) / <b>Crestbred</b> (tête lisse) : 17 cm, huppe gigantesque retombant sur le bec et la nuque. <b>German Crest</b> (Huppé Allemand) : seule race de posture où la couleur du lipochrome/mélanine est aussi jugée.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="4-famille-posture-redressee">4. Famille Posture Redressée / Position</div><div class="lexique-definition"><b>Bossu Belge</b> (17-18 cm, forme de crochet « 7 », épaules hautes, queue rentrée). <b>Scotch Fancy</b> (17 cm, forme de demi-lune, corps arqué du bec à la queue). <b>Hoso Japonais</b> (11 cm, miniature élégante du Scotch Fancy).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="5-famille-de-dessin-le-lizard">5. Famille de Dessin — le Lizard</div><div class="lexique-definition">13,5-14 cm. Dessin unique fait de <b>spangles</b> (écailles noires alignées sur le dos), de <b>paillettes</b> (dessin de la poitrine) et d'une <b>casquette</b> (zone lipochrome nette sur la tête — parfaite, incomplète, ou absente).</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(5)" style="border-left:4px solid #68d391;">
+                <span id="anc-sante">🩺 Santé, Mue & Pathologies</span>
+                <span class="cat-arrow" id="glo-arrow-5">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-5" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="la-mue">La mue</div><div class="lexique-definition">Processus physiologique annuel renouvelant l'intégralité du plumage. Chez le canari adulte, elle a lieu en fin d'été (juillet à octobre) et dure 6 à 8 semaines. C'est une période critique et éprouvante sur le plan énergétique.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="besoins-pendant-la-mue">Besoins pendant la mue</div><div class="lexique-definition">L'oiseau a besoin d'un apport accru en protéines (acides aminés soufrés comme la méthionine et la cystine), en vitamines (groupe B, choline) et en minéraux pour construire des plumes solides. Éviter les courants d'air et fournir des bains quotidiens.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="acarien-rouge">Acarien rouge (Dermanyssus gallinae)</div><div class="lexique-definition">Parasite hématophage nocturne redoutable. Il vit caché dans les fentes de la cage ou du nid pendant la journée et vient sucer le sang des oiseaux la nuit, provoquant anémie, stress et parfois mortalité chez les oisillons au nid.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="coccidiose">Coccidiose</div><div class="lexique-definition">Maladie parasitaire intestinale causée par des protozoaires (Coccidies), favorisée par l'humidité et la promiscuité. Elle se manifeste par des fientes liquides, une perte de poids rapide (sternum saillant, « maladie de l'os ») et un plumage ébouriffé (« oiseau en boule »).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="acarien-des-sacs-aeriens">Acarien des sacs aériens (Sternostoma tracheacolum)</div><div class="lexique-definition">Parasite microscopique logé dans la trachée et les poumons de l'oiseau — cible un système déjà sensible chez le canari (d'où son usage historique dans les mines). Symptômes : toux, sifflements respiratoires, claquement de bec, perte du chant.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="longevite-prevention">Longévité & prévention</div><div class="lexique-definition">Un canari bien nourri, logé proprement et à l'abri des prédateurs/écarts de température vit en moyenne 10 à 15 ans. L'hygiène quotidienne des cages, une alimentation équilibrée et une période de quarantaine pour tout nouvel oiseau restent la meilleure prévention.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(6)" style="border-left:4px solid #f6ad55;">
+                <span id="anc-vocabulaire">📚 Vocabulaire de l'Éleveur</span>
+                <span class="cat-arrow" id="glo-arrow-6">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-6" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="bague-fermee">Bague fermée</div><div class="lexique-definition">Anneau métallique inamovible posé entre le 5e et le 7e jour, gravé d'un numéro unique, de l'année et du code pays — certifie l'origine légale et l'élevage en captivité.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="elevage-au-nid">Élevage au nid (tour d'élevage)</div><div class="lexique-definition">Période allant de la ponte du premier œuf au sevrage complet des jeunes (environ 30 jours). Un couple effectue généralement 2 à 3 tours d'élevage par saison (du printemps au début de l'été).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="patee-d-elevage">Pâtée d'élevage</div><div class="lexique-definition">Aliment complémentaire mou riche en protéines (œuf, céréales, vitamines) distribué aux parents dès l'éclosion pour leur permettre de nourrir efficacement les oisillons.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="juge-ornithologue">Juge ornithologue</div><div class="lexique-definition">Expert formé et certifié par les fédérations (comme la COM) pour évaluer les oiseaux en exposition selon une grille d'étalon (standard) sur 100 points.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="canari-de-posture">Canari de posture</div><div class="lexique-definition">Race sélectionnée pour ses critères physiques et anatomiques stricts (forme, taille, plumage) plutôt que pour sa couleur ou son chant — regroupe des races comme le Gloster, le Raza, les Frisés ou le Fife.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(7)" style="border-left:4px solid #b794f4;">
+                <span id="anc-anecdotes">🎭 Anecdotes & Culture</span>
+                <span class="cat-arrow" id="glo-arrow-7">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-7" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="titi">Titi (Tweety Bird)</div><div class="lexique-definition">Apparu en 1942 dans « A Tale of Two Kitties » (Bob Clampett, Warner Bros/Looney Tunes) — à l'origine un oisillon rose sans plumes, transformé ensuite en canari jaune. Son duo avec le chat Grosminet a ancré l'image du canari jaune dans la culture populaire mondiale.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="symbole-domestique">Symbole domestique</div><div class="lexique-definition">Le canari est l'un des rares animaux sauvages ayant été totalement domestiqué au point de développer des mutations anatomiques et pigmentaires uniques qui n'existeraient pas dans la nature sans la sélection humaine. Dans la littérature et la BD des XIXe-XXe siècles, il symbolise tour à tour la quiétude du foyer et, à l'inverse, l'enfermement.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="porte-bonheur-des-marins">Porte-bonheur des marins</div><div class="lexique-definition">Du XVIIe au XIXe siècle, les canaris étaient embarqués sur les navires de guerre et de commerce pour leur sensibilité aux changements d'air, mais aussi comme compagnons de chant pour l'équipage lors des longues traversées.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="l-etymologie-des-iles-canaries">L'étymologie des îles Canaries</div><div class="lexique-definition">L'oiseau tire son nom des îles Canaries, mais l'archipel lui-même ne vient pas de l'oiseau ! Il vient du latin <i>Canariae Insulae</i> (« Îles aux Chiens »), nommé ainsi par les Romains en raison des grands chiens sauvages (<i>canes</i>) découverts sur l'île.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(8)" style="border-left:4px solid #4fd1c5;">
+                <span id="anc-biologie">🧬 Biologie, Anatomie & Physiologie</span>
+                <span class="cat-arrow" id="glo-arrow-8">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-8" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="structure-du-plumage">Structure du plumage</div><div class="lexique-definition">Le canari compte environ 2000 à 3000 plumes (isolation, étanchéité, vol, signaux visuels). Une plume type = calamus (base creuse ancrée dans la peau), rachis (axe central), barbes, et barbules à crochets (velcro naturel qui maintient la surface unie).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="intensif-vs-schimmel">Intensif vs Schimmel (structure)</div><div class="lexique-definition"><a href="#" class="terme-lien" onclick="allerA('glossaire','intensif');return false;">Intensif</a> : rachis court, barbes serrées, lipochrome fixé jusqu'à la pointe. <a href="#" class="terme-lien" onclick="allerA('glossaire','schimmel');return false;">Schimmel</a> : rachis plus long, barbes plus larges et souples, bord incolore « givré ». En accouplant Schimmel × Schimmel de manière répétée, la plume devient trop large et molle pour percer l'épiderme en repoussant : elle s'enroule sous la peau et forme un kyste kératinisé (« lump »).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="systeme-respiratoire-sacs-aeriens">Système respiratoire & sacs aériens</div><div class="lexique-definition">Le canari possède 9 sacs aériens reliés à des poumons rigides qui ne se dilatent pas eux-mêmes. L'air y circule en <b>double flux unidirectionnel</b> : l'oxygène est extrait aussi bien à l'inspiration qu'à l'expiration, ce qui garantit un apport constant même pendant un chant prolongé.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="la-syrinx">La syrinx (organe du chant)</div><div class="lexique-definition">Située à la jonction basse de la trachée et des deux bronches, la syrinx vibre grâce à des membranes tympaniformes. Ses muscles gauche et droit sont indépendants : le canari peut fermer un côté et chanter de l'autre, voire émettre deux notes différentes en même temps (harmonies biphoniques).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="systeme-digestif">Système digestif</div><div class="lexique-definition">Bec (pas de dents, décorticage à la langue) → jabot (stockage, humidification des graines) → proventricule (sucs gastriques) → gésier (broyage à l'aide de petits graviers ingérés, le « grit ») → intestin puis cloaque (fientes + acide urique évacués ensemble).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="metabolisme-des-pigments">Métabolisme des pigments</div><div class="lexique-definition">Les mélanines sont fabriquées par l'oiseau lui-même (mélanocytes, enzyme tyrosinase). Les caroténoïdes (lipochromes), eux, viennent uniquement de l'alimentation : lutéine et zéaxanthine donnent le Jaune directement, tandis que canthaxanthine et bêta-carotène sont transformés par le foie puis transportés jusqu'à la plume pour donner le Rouge.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="declenchement-de-la-reproduction">Déclenchement de la reproduction (photopériode)</div><div class="lexique-definition">À partir de 14-15h de lumière par jour, l'hypothalamus stimule la sécrétion des hormones FSH et LH, déclenchant la maturation des testicules (le mâle chante fort et poursuit la femelle) et des ovaires.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="plaque-incubatrice">Plaque incubatrice</div><div class="lexique-definition">Quelques jours avant la ponte, la femelle perd les plumes de son abdomen (œstrogènes, prolactine). La peau, très vascularisée, devient une plaque chaude (~38,5-39°C) qui transfère directement la chaleur du corps aux œufs.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="formation-de-l-uf">Formation de l'œuf (~24h)</div><div class="lexique-definition">Ovaire (libération du jaune) → magnum (~3h, dépôt du blanc) → isthme (~1-2h, membranes coquillères) → utérus/glande coquillère (~20h, calcification puis pigmentation de la coquille) → ponte, généralement tôt le matin.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="mirage-developpement-embryonnaire">Mirage & développement embryonnaire</div><div class="lexique-definition">J1-J3 : formation du cœur et des premiers vaisseaux. J6-J7 (mirage) : un œuf fécondé montre un réseau de vaisseaux rouges autour d'un point central qui bat ; un œuf clair (non fécondé) reste parfaitement transparent. J13-J14 : éclosion, le pigeonneau brise la coquille à l'aide de sa « goutte de lait », petite pointe calcaire sur le bec qui disparaît quelques jours plus tard.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(9)" style="border-left:4px solid #ed64a6;">
+                <span id="anc-grandsnoms">👤 Grands Noms de la Canariculture</span>
+                <span class="cat-arrow" id="glo-arrow-9">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-9" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="dr-hans-duncker">Dr Hans Duncker (Allemagne, début XXe s.)</div><div class="lexique-definition">Le père de la génétique du canari — premier à avoir appliqué les lois de Mendel à son élevage, et à avoir travaillé sur la transmission des lipochromes. C'est lui qui, avec <a href="#" class="terme-lien" onclick="allerA('glossaire','karl-reich');return false;">Karl Reich</a>, a introduit le Facteur Rouge en 1921 (cf. Histoire).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="karl-reich">Karl Reich (Allemagne)</div><div class="lexique-definition">Pionnier de l'étude du chant chez le canari Harzer et des premiers enregistrements acoustiques, au début des années 1900.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dr-maurice-pomarede">Dr Maurice Pomarède (France)</div><div class="lexique-definition">Scientifique et auteur de référence francophone — ses ouvrages sur la génétique des oiseaux de cage et la synthèse des pigments ont formé des générations d'éleveurs.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="jose-antonio-abellan-banos">José Antonio Abellán Baños (Espagne)</div><div class="lexique-definition">Créateur et fixateur de la mutation <a href="#" class="terme-lien" onclick="allerA('glossaire','jaspe');return false;">Jaspe</a>, par hybridation avec le Tarin de Magellan — figure incontournable de la canariculture contemporaine.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="guillermo-cabrera-amat">Guillermo Cabrera Amat (Espagne)</div><div class="lexique-definition">Auteur du livre de référence mondiale <i>« Cien preguntas, cien respuestas sobre la genética del canario »</i>, une vulgarisation majeure de la génétique appliquée aux accouplements.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="pietro-lucca">Pietro Lucca (Italie)</div><div class="lexique-definition">Maître de la sélection des canaris de posture, en particulier les races géantes frisées (Frisé Parisien, AGI — Arlequin Géant Italien).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="c-o-m-confederation-ornithologique-mondiale">C.O.M. — Confédération Ornithologique Mondiale</div><div class="lexique-definition">L'organisme suprême qui gère les standards mondiaux, l'attribution des bagues officielles et l'organisation du Championnat du Monde.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="o-m-j-ordre-mondial-des-juges">O.M.J. — Ordre Mondial des Juges</div><div class="lexique-definition">Corps des juges internationaux spécialisés qui rédigent les grilles de pointage et harmonisent les standards de couleur, posture et chant à l'échelle internationale.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="u-o-f">U.O.F. / F.F.O. (réseaux francophones)</div><div class="lexique-definition">Union Ornithologique de France et Fédération Française d'Ornithologie — structurent les clubs locaux, l'approvisionnement en bagues et les championnats nationaux (rattachées à la C.O.M.).</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(10)" style="border-left:4px solid #4299e1;">
+                <span id="anc-dictionnaire">📚 Dictionnaire A-Z</span>
+                <span class="cat-arrow" id="glo-arrow-10">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-10" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="dict-acromelanique">Acromélanique</div><div class="lexique-definition">Distribution des pigments mélaniques localisée uniquement sur les extrémités du corps (bec, pattes, ailes, queue).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-allele">Allèle</div><div class="lexique-definition">Version ou variante d'un même gène (ex : l'allèle sauvage Z⁺ face à l'allèle muté Z^sat).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-atoxoplasmose">Atoxoplasmose</div><div class="lexique-definition">Forme grave et systémique de coccidiose où le parasite envahit le foie et la rate (« maladie du gros foie »).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-autosome">Autosome / Autosomique</div><div class="lexique-definition">Chromosome non sexuel. Une mutation autosomique touche indifféremment les mâles et les femelles.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-carophylle-rouge">Carophylle Rouge</div><div class="lexique-definition">Pigment colorant dérivé de la bêta-apo-8'-caroténal, utilisé en complément de la canthaxanthine pour apporter brillance et homogénéité au lipochrome rouge.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-carotenoide">Caroténoïde</div><div class="lexique-definition">Famille de pigments (jaunes, oranges, rouges) absorbés dans l'alimentation pour colorer la plume — le canari ne peut pas les synthétiser lui-même.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-cloaque">Cloaque</div><div class="lexique-definition">Orifice unique chez l'oiseau servant à l'évacuation des fientes, à la ponte et à la copulation.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-brechet">Bréchet</div><div class="lexique-definition">Sternum proéminent de l'oiseau, point d'ancrage des puissants muscles pectoraux utilisés pour le vol. Un bréchet très saillant chez un oiseau (peu de chair autour) est un signe de maigreur/mauvaise santé.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-jabot">Jabot</div><div class="lexique-definition">Poche située au bas de l'œsophage, servant à stocker et humidifier les graines avant leur passage dans l'estomac.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-gesier">Gésier</div><div class="lexique-definition">Estomac musculaire de l'oiseau qui broie mécaniquement les graines, à l'aide de petits graviers avalés (le « grit », faute de dents).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-proventricule">Proventricule</div><div class="lexique-definition">Estomac chimique de l'oiseau, situé avant le gésier, où sont sécrétés les sucs gastriques (acide chlorhydrique, pepsine).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-gregaire">Grégaire</div><div class="lexique-definition">Qui vit naturellement en groupe. Le canari sauvage est grégaire — un individu domestique reste sensible à la présence ou l'absence d'autres oiseaux, même s'il peut très bien vivre seul avec un bon contact humain.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-co-dominance">Co-dominance / Semi-dominance</div><div class="lexique-definition">Mode d'hérédité où deux allèles s'expriment simultanément, créant un phénotype intermédiaire (ex : le <a href="#" class="terme-lien" onclick="allerA('glossaire','jaspe');return false;">Jaspe</a> Simple Facteur, ou le fond Orangé entre Jaune et Rouge).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-colibacillose">Colibacillose</div><div class="lexique-definition">Infection bactérienne (<i>Escherichia coli</i>) causant une mortalité précoce des oisillons au nid (« tache noire »).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-dilution">Dilution</div><div class="lexique-definition">Réduction de la concentration de pigments mélaniques dans la plume, rendant le dessin plus clair (ex : <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a>, <a href="#" class="terme-lien" onclick="allerA('glossaire','pastel');return false;">Pastel</a>).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-enrofloxacine">Enrofloxacine</div><div class="lexique-definition">Antibiotique à large spectre (nom commercial courant : Baytril) utilisé en médecine aviaire.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-grit">Grit</div><div class="lexique-definition">Mélange de petits graviers et coquillages broyés, indispensable au gésier pour la digestion mécanique des graines.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-heterogametique">Hétérogamétique / Homogamétique</div><div class="lexique-definition">Le sexe hétérogamétique possède deux chromosomes sexuels différents (la femelle canari : ZW) ; le sexe homogamétique en a deux identiques (le mâle canari : ZZ) — l'inverse exact des mammifères.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-homozygote">Homozygote / Hétérozygote</div><div class="lexique-definition">Homozygote : deux allèles identiques pour un gène (ex : oiseau « pur »). Hétérozygote : deux allèles différents (ex : oiseau « porteur » d'une mutation récessive).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-incrustation">Incrustation</div><div class="lexique-definition">Traces de couleur lipochrome situées sur le bord des rémiges chez le canari Blanc Dominant.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-ivermectine">Ivermectine</div><div class="lexique-definition">Molécule antiparasitaire externe et interne (utilisée contre les poux rouges et l'acariose trachéale).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-letal">Létal (facteur / gène)</div><div class="lexique-definition">Gène mortel à l'état homozygote, provoquant le décès de l'embryon dans l'œuf. Chez le canari : <a href="#" class="terme-lien" onclick="allerA('glossaire','intensif');return false;">Intensif</a>×Intensif, Blanc Dominant×Blanc Dominant, Huppé×Huppé — <b>PAS</b> <a href="#" class="terme-lien" onclick="allerA('glossaire','jaspe');return false;">Jaspe</a> (confirmé non létal, cf. Alertes).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-megabacteriose">Mégabactériose</div><div class="lexique-definition">Infection du proventricule causée par une levure géante (<i>Macrorhabdus ornithogaster</i>).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-meiose">Méiose</div><div class="lexique-definition">Division cellulaire produisant les gamètes (spermatozoïdes, ovules) avec la moitié des chromosomes — c'est pendant la méiose qu'un crossing-over peut se produire.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-oviducte">Oviducte</div><div class="lexique-definition">Canal de l'appareil reproducteur femelle où se forment le blanc, les membranes puis la coquille de l'œuf.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-passerine">Passerine</div><div class="lexique-definition">Mâle porteur de deux mutations liées au sexe différentes sur ses chromosomes Z (ex : <a href="#" class="terme-lien" onclick="allerA('glossaire','agate');return false;">Agate</a> et Brun) — capable de produire des filles <a href="#" class="terme-lien" onclick="allerA('glossaire','isabelle');return false;">Isabelle</a> par crossing-over.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-phenotype">Phénotype / Génotype</div><div class="lexique-definition">Phénotype : ce que l'on voit (apparence visuelle de l'oiseau). Génotype : ce qu'il porte réellement dans ses gènes, parfois invisible (cas du porteur).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-pica">Pica</div><div class="lexique-definition">Comportement anormal où l'oiseau s'arrache et mange ses plumes ou celles d'un congénère — souvent par manque de minéraux ou besoin de faire un nid.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-pododermatite">Pododermatite</div><div class="lexique-definition">Inflammation ou infection bactérienne de la voûte plantaire de la patte (« maux de pattes »).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-rectrices">Rectrices / Rémiges</div><div class="lexique-definition">Rectrices : grandes plumes rigides de la queue. Rémiges : grandes plumes rigides des ailes, servant au vol.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-tarse">Tarse</div><div class="lexique-definition">Partie inférieure de la patte de l'oiseau, recouverte d'écailles — c'est là qu'on place la bague.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-tison">Tison</div><div class="lexique-definition">Proéminence formée par le cloaque du mâle en période de reproduction — signe qu'il est prêt à l'accouplement.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-toltrazuril">Toltrazuril</div><div class="lexique-definition">Molécule anticoccidienne puissante (nom commercial courant : Baycox).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dict-variole-du-canari">Variole du canari</div><div class="lexique-definition">Maladie virale grave (Poxvirus) causant des pustules cutanées ou une atteinte respiratoire pouvant aller jusqu'à l'asphyxie.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(11)" style="border-left:4px solid #a0aec0;">
+                <span id="anc-materiel">🛠️ Matériel & Équipement</span>
+                <span class="cat-arrow" id="glo-arrow-11">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-11" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-definition">Un élevage fonctionnel repose sur un matériel adapté qui facilite l'entretien quotidien, garantit une hygiène irréprochable et optimise le bien-être des oiseaux.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">1. Les Cages et Volières</div>
+                <div class="lexique-box"><div class="lexique-term" id="cages-d-elevage">Cages d'élevage (batteries d'accouplement)</div><div class="lexique-definition"><b>Matériaux recommandés</b> : Plastique injecté (PVC/ABS) ou tôle galvanisée. Le plastique est lavable à grande eau, imputrescible et ne laisse aucun refuge aux poux rouges (contrairement au bois). <b>Dimensions minimales par couple</b> : 60 cm (longueur) × 40 cm (hauteur) × 30 cm (profondeur), avec grille de séparation amovible (séparation opaque + grille métallique).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="volieres-d-assouplissement">Volières d'assouplissement</div><div class="lexique-definition">Nécessaires pour le sevrage des jeunes et la mue. Elles permettent l'exercice physique, le développement de la masse musculaire et la solidité du squelette.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="cages-de-concours">Cages de concours</div><div class="lexique-definition">Cages officielles normalisées par la C.O.M. (cage tunnel pour couleur, cage dôme pour Gloster, cage haute pour posture de forme), utilisées uniquement pour l'entraînement et l'exposition.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">2. Les Accessoires de Cage</div>
+                <div class="lexique-box"><div class="lexique-term" id="perchoirs">Perchoirs</div><div class="lexique-definition">Préférer des diamètres différents (de 10 mm à 15 mm) ou ovales, pour faire travailler les articulations des pattes et prévenir les pododermatites (maux de pattes). <b>Nettoyage</b> : perchoirs en plastique à fixation rapide, faciles à déclipser et désinfecter.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="mangeoires-buvettes">Buvettes et mangeoires</div><div class="lexique-definition"><b>Mangeoires à trémie</b> (anti-gaspillage) : distribuent les graines au fur et à mesure et évitent la contamination par les fientes. <b>Buvettes à bille ou goutte-à-goutte</b> : plus hygiéniques que les buvettes ouvertes traditionnelles, car l'eau reste à l'abri de la poussière et des déjections.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="nids">Nids et supports</div><div class="lexique-definition">Nids en plastique rigide perforé (bonne aération) ou nids externes. Utiliser des doublures en feutre interchangeables et lavables.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">3. Les Équipements de la Pièce d'Élevage</div>
+                <div class="lexique-box"><div class="lexique-term" id="eclairage-programme">Éclairage LED spécifique (effet aube / crépuscule)</div><div class="lexique-definition">Programmateur horaire simulant le lever et le coucher du soleil en 30 minutes (évite que les femelles ne soient surprises dans le noir hors du nid). LEDs à spectre complet, reproduisant la lumière naturelle du jour sans scintillement (« flicker-free »).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="regulation-du-climat">Régulation du climat</div><div class="lexique-definition">Thermomètre / hygromètre à mémoire de min/max. Humidificateur d'air, pour maintenir 65% d'humidité lors de l'éclosion.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="gestion-de-l-air">Gestion de l'air</div><div class="lexique-definition">Purificateur d'air à filtre HEPA — essentiel pour capter la poussière de plume et les squames (« danders ») lors de la mue.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="outils-de-precision">Outils de précision</div><div class="lexique-definition">Mire-œuf à LED haute intensité. Balance de précision au gramme près, pour le suivi du poids des malades et le dosage des additifs/colorants.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(12)" style="border-left:4px solid #ecc94b;">
+                <span id="anc-alimentation">🌾 Alimentation & Coloration</span>
+                <span class="cat-arrow" id="glo-arrow-12">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-12" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-definition">L'alimentation du canari doit s'adapter en permanence à son cycle biologique : donner le même régime toute l'année entraîne l'obésité en hiver, l'échec de la reproduction, ou une mauvaise qualité de plumage après la mue.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">1. Les composants de base de la ration</div>
+                <div class="lexique-box"><div class="lexique-term" id="base-du-melange-de-graines">Le mélange de graines</div><div class="lexique-definition">L'<b>alpiste</b> (65% à 75% du mélange) est la graine de santé indispensable — pauvre en graisses, riche en protéines digestes. Les graines oléagineuses (riches en lipides) doivent être dosées avec précision : <b>Périlla blanc</b> (très digeste, riche en acides gras essentiels, protège la flore intestinale) · <b>Navette</b> (appréciée des canaris de chant, mais à doser avec modération, riche en graisses) · <b>Niger</b> (stimule la ponte chez la femelle, mais toxique pour le foie en excès) · <b>Chènevis</b> (excitateur sexuel, idéal en préparation à l'élevage) · <b>Lin</b> (favorise le brillant de plume, contient des oméga-3) · <b>Avoine décortiquée</b> (très rafraîchissante et nourrissante pour les pigeonneaux au nid).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="patee-elevage">La pâtée d'élevage</div><div class="lexique-definition"><b>Pâtée sèche</b> : se conserve longtemps, idéale à humecter avec des légumes ou des graines germées. <b>Pâtée humide (moelleuse)</b> : prête à l'emploi, contient des corps gras pour l'appétibilité.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">2. Adaptation du régime selon les périodes</div>
+                <div class="lexique-box"><div class="lexique-term" id="regime-en-periode-de-repos">Période de repos (octobre à janvier)</div><div class="lexique-definition"><b>Objectif</b> : maintien du poids de forme, repos digestif et hépatique. <b>Graines</b> : mélange pauvre (80% alpiste + 20% graines variées) ou alpiste pur avec un godet de graines de santé 1 fois par semaine. <b>Pâtée</b> : aucune, ou 1 fois par quinzaine maximum. <b>Verdure</b> : 1 à 2 fois par semaine (pomme, brocoli, concombre). <b>Protection hépatique</b> : cure de Choline dans l'eau de boisson 2 jours par mois.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="regime-en-preparation-reproduction">Période de préparation & reproduction (février à mai)</div><div class="lexique-definition"><b>Objectif</b> : booster la fertilité, apporter l'énergie nécessaire à la ponte et nourrir la croissance rapide des petits. <b>Graines</b> : mélange élevage enrichi en chènevis et niger. <b>Pâtée</b> : 2 à 3 fois par semaine avant l'accouplement (pour habituer les reproducteurs), puis à volonté tous les jours au nid dès la naissance des jeunes (taux de protéines brutes idéal : 18% à 20%). <b>Compléments</b> : calcium en libre-service (os de seiche, grit, coquilles d'œufs stérilisées), Vitamine E et AD3E dans l'eau de boisson, graines germées ou perles morbides pour humidifier la pâtée et stimuler le gavage.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="regime-en-periode-de-mue">Période de mue (juin à septembre)</div><div class="lexique-definition"><b>Objectif</b> : reconstruire l'intégralité du plumage (la plume est constituée à 85% de kératine) — la période la plus éprouvante de l'année. <b>Graines</b> : enrichies en oléagineuses riches en soufre et en huiles (lin, périlla, tournesol micro). <b>Pâtée de mue</b> (taux de protéines : 16% à 18%) 2 à 3 fois par semaine. <b>Acides aminés soufrés</b> : Méthionine et Cystine dans l'eau ou la pâtée, pour éviter la pousse de plumes cassantes ou tordues. <b>Bain</b> : baignoire quotidienne obligatoire pour assouplir le fourreau des nouvelles plumes.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">3. Minéraux & assainisseurs digestifs</div>
+                <div class="lexique-box"><div class="lexique-term" id="mineraux-assainisseurs">Grit, charbon actif et acidification de l'eau</div><div class="lexique-definition"><b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-grit');return false;">Grit</a> et sable de coquillage</b> : indispensables dans le gésier pour broyer mécaniquement les graines sèches. <b>Charbon de bois actif</b> : absorbe les toxines intestinales et prévient les diarrhées légères (à faible dose). <b>Acidification de l'eau</b> : vinaigre de cidre de pomme (1 cuillère à café par litre) 1 à 2 jours par semaine, pour abaisser le pH du jabot et empêcher la prolifération des bactéries (E. coli, Salmonella).</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">4. La coloration des canaris lipochromes</div>
+                <div class="lexique-box"><div class="lexique-definition">La coloration artificielle est indispensable pour exprimer pleinement le potentiel génétique des canaris à lipochrome rouge (Intensif, Schimmel, Mosaïque) ainsi que certaines mutations à lipochrome jaune. Sans apport de caroténoïdes dans l'alimentation, un canari rouge devient orange pâle après la mue.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="les-3-pigments-colorants-du-rouge">Les 3 pigments colorants du rouge</div><div class="lexique-definition"><b>Canthaxanthine</b> : pigment de synthèse ultra-puissant donnant l'intensité du rouge foncé, fixation très rapide — en excès elle vire au rouge violacé brique et engorge le foie. <b><a href="#" class="terme-lien" onclick="allerA('glossaire','dict-carophylle-rouge');return false;">Carophylle Rouge</a></b> (dérivé de la bêta-apo-8'-caroténal) : apporte brillance, velouté et une répartition uniforme du lipochrome. <b>Bêta-carotène</b> (précurseur naturel de la vitamine A) : pigment plus doux, donne luminosité et brillant, limite la dureté visuelle de la canthaxanthine. 💡 <b>Recette classique d'éleveur</b> (pour 10 g de mélange colorant pur) : 5 g Canthaxanthine (50%) / 3 g Carophylle Rouge (30%) / 2 g Bêta-carotène (20%).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="dosage-administration-colorant">Dosage et mode d'administration</div><div class="lexique-definition"><b>Dosage de référence</b> : 8 g à 10 g de mélange colorant par kilo de pâtée d'élevage. <b>Incorporation</b> : mélanger impérativement à sec dans la pâtée, de façon parfaitement homogène, avant d'humidifier — un mauvais mélange crée des taches de couleur ou un plumage marbré. <b>Coloration dans l'eau</b> : déconseillée, les colorants se déposent au fond de la buvette et souillent le plumage quand l'oiseau se lave.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="calendrier-de-coloration">Calendrier de coloration (règles C.O.M.)</div><div class="lexique-definition">Le début du traitement dépend du phénotype : <b><a href="#" class="terme-lien" onclick="allerA('glossaire','intensif');return false;">Intensif</a> & Schimmel</b> (objectif : colorer tout le plumage, y compris rémiges et rectrices) — traitement dès la préparation des parents (2 semaines avant l'accouplement) ou au plus tard dès le 1ᵉʳ jour d'éclosion, jusqu'à la fin de mue des jeunes (5-6 mois). <b><a href="#" class="terme-lien" onclick="allerA('glossaire','mosaique');return false;">Mosaïque</a></b> (objectif : colorer uniquement les zones de choix — masque facial, épaules, poitrine, croupion — en gardant le dos et les ailes/queue blancs, exigence des juges) — traitement tardif, à partir du 40ᵉ-45ᵉ jour (une fois les grandes plumes du nid poussées et blanchies), jusqu'à la fin de mue des adultes et des jeunes.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="protection-hepatique-pendant-la-coloration">Protection hépatique obligatoire</div><div class="lexique-definition">Les pigments colorants synthétiques sont lourds à éliminer et sollicitent énormément le foie. <b>Symptôme d'engorgement</b> : foie volumineux, tavelé, ou tache noire visible sous la peau en bas à droite du bréchet. <b>Protocole</b> : Choline en continu (ex : Oceanis, Vitacholine, Séricholine) dans l'eau de boisson pendant toute la coloration, 2 à 3 jours par semaine + plantes hépato-protectrices (extrait de Chardon-Marie/Silymarine, ou Pissenlit) dans la pâtée.</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(13)" style="border-left:4px solid #f56565;">
+                <span id="anc-concours">🏅 Concours, Bagues & Standards C.O.M.</span>
+                <span class="cat-arrow" id="glo-arrow-13">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-13" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-definition">La préparation à un concours commence bien avant le jour J — elle démarre dès la fin de la mue, avec une sélection rigoureuse, puis un entraînement progressif adapté à chaque discipline.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">1. Sélection des sujets (fin de mue, août-septembre)</div>
+                <div class="lexique-box"><div class="lexique-term" id="selection-des-sujets">Critères de sélection</div><div class="lexique-definition"><b>Santé et vigueur</b> : œil vif, poids optimal, absence de tout signe de maladie. <b>Plumage</b> complet, lisse et sans aucune plume cassée ou manquante. <b>Conformité au standard</b> : intensité de couleur, netteté du patron, alignement du dessin mélanique. <b>Défauts éliminatoires immédiats</b> : bague manquante, coupée ou illisible · doigt manquant ou patte déformée · kyste de plume (« Lumps ») · tache de lipochrome chez un sujet mélanique, ou inversement.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">2. L'entraînement selon la discipline</div>
+                <div class="lexique-box"><div class="lexique-term" id="ecolage-des-canaris-de-chant">Écolage des canaris de chant</div><div class="lexique-definition">Les jeunes mâles prometteurs sont isolés en cages d'écolage individuelles dès septembre-octobre. Ils sont placés dans une armoire d'écolage tenue en semi-obscurité, pour concentrer leur attention sur l'écoute plutôt que sur le visuel. Ils écoutent soit un « maître chanteur » (mâle adulte confirmé et sélectionné pour la pureté de son chant), soit des enregistrements de référence, à raison de 3 à 4 séances de 30 minutes par jour. Dans les semaines précédant le concours, ils sont progressivement réhabitués à la pleine lumière et à la présence humaine, pour ne pas être déstabilisés par le passage du jury.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="entrainement-couleur-posture">Entraînement couleur & posture</div><div class="lexique-definition">Les oiseaux sont mis en cage de concours officielle 4 à 6 semaines avant l'exposition, pour s'y habituer complètement. Un travail de désensibilisation au stress est mené (déplacements de la cage, bruits ambiants variés) ainsi qu'une manipulation douce et répétée, pour que l'oiseau se tienne fièrement et calmement sur le perchoir sans paniquer au passage du juge.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">3. La grille de notation C.O.M.</div>
+                <div class="lexique-box"><div class="lexique-term" id="grille-de-notation-c-o-m">Grille de notation C.O.M. (100 points)</div><div class="lexique-definition">
+                    <table class="lex-table"><tr><th>Rubrique</th><th>Points</th><th>Ce que recherche le juge</th></tr>
+                    <tr><td>Mélanine / Lipochrome</td><td>30</td><td>Pureté, intensité, absence de doreur, dessin bien aligné</td></tr>
+                    <tr><td>Catégorie</td><td>15</td><td>Respect du type Intensif, Schimmel ou Mosaïque parfait</td></tr>
+                    <tr><td>Plumage</td><td>15</td><td>Soyeux, collé au corps, aucune plume cassée ou manquante</td></tr>
+                    <tr><td>Taille</td><td>10</td><td>Conforme au standard de la race (ex : 14 cm pour la couleur)</td></tr>
+                    <tr><td>Forme & Impression</td><td>10</td><td>Harmonie générale du corps, tête bien proportionnée</td></tr>
+                    <tr><td>Maintien & Posture</td><td>10</td><td>Calme sur le perchoir, angle à 45° par rapport au perchoir</td></tr>
+                    <tr><td>Pattes & Bec</td><td>5</td><td>Ongles complets, bec net, absence de squames</td></tr>
+                    <tr><td>Condition générale</td><td>5</td><td>Propreté parfaite de l'oiseau et de la cage</td></tr>
+                    <tr><td><b>TOTAL</b></td><td><b>100</b></td><td></td></tr></table>
+                    <b>Grille de lecture des scores</b> : <b>94 points et +</b> = niveau Champion du Monde · <b>92-93</b> = médaille d'Or · <b>90-91</b> = médaille d'Argent/Bronze · <b>88-89</b> = bon niveau reproducteur, encore perfectible en concours · <b>87 et moins</b> = défauts majeurs à corriger avant de retenter.
+                </div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">4. Les bagues officielles</div>
+                <div class="lexique-box"><div class="lexique-term" id="bague-fermee-officielle">Bague fermée officielle</div><div class="lexique-definition">C'est le SEUL document attestant qu'un oiseau est né en captivité chez un éleveur déclaré — le prélèvement d'oiseaux sauvages est strictement interdit. Elle doit obligatoirement porter : le sigle de la fédération émettrice, l'année de naissance, le numéro d'éleveur national et le numéro d'ordre de l'oiseau dans la nichée.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="diametres-reglementaires-des-bagues-c-o-m">Diamètres réglementaires des bagues C.O.M.</div><div class="lexique-definition">
+                    <table class="lex-table"><tr><th>Diamètre</th><th>Races concernées</th></tr>
+                    <tr><td>2,5 mm</td><td>Raza Española, Fife Fancy, Hoso Japonais, Petit Singer</td></tr>
+                    <tr><td>2,7-2,8 mm</td><td>Canaris de couleur (tous lipochromes/mélaniques), canaris de chant (Harzer, Malinois, Timbrado), Gloster, Lizard, German Crest Consort</td></tr>
+                    <tr><td>2,9-3,0 mm</td><td>Norwich, Border, Frisé Parisien, Crest Corona, Lancashire, Yorkshire</td></tr>
+                    <tr><td>3,2 mm et +</td><td>AGI (Arlequin Géant Italien), Frisé Géant</td></tr></table>
+                </div></div>
+                <div class="lexique-box"><div class="lexique-term" id="attestation-de-cession">Attestation de cession</div><div class="lexique-definition">Fortement recommandée (et parfois exigée par les fédérations) lors d'une vente ou d'un don d'oiseau entre éleveurs. Elle doit préciser : les coordonnées complètes du cédant et de l'acquéreur, le numéro de bague, l'espèce et la mutation, l'année de naissance, ainsi que la date et les signatures des deux parties — un document simple mais qui protège les deux éleveurs en cas de litige ultérieur.</div></div>
+                <div class="fiche-souscat" style="margin-top:8px;">5. Le jour du concours</div>
+                <div class="lexique-box"><div class="lexique-term" id="le-jour-j-enlogement">Le jour J : enlogement</div><div class="lexique-definition"><b>Transport</b> : caisse obscure et bien ventilée, garnie d'alpiste et d'un morceau de fruit pour l'hydratation (jamais de buvette classique, qui se renverserait pendant le trajet). <b>Erreurs fréquentes à éviter absolument</b> : donner de la pâtée colorante le matin même du concours (tache visiblement le menton et le bec) · présenter un oiseau qui n'a jamais été habitué à la cage de concours officielle (stress visible, mauvaise tenue) · bague sale ou illisible (entraîne un déclassement immédiat par le juge, sans appel).</div></div>
+            </div>
+        </div>
+        <div class="cat-bloc">
+            <button class="cat-header" onclick="toggleGlossaire(14)" style="border-left:4px solid #48bb78;">
+                <span id="anc-cycle">📅 Cycle de l'Éleveur</span>
+                <span class="cat-arrow" id="glo-arrow-14">▼</span>
+            </button>
+            <div class="cat-list" id="glo-list-14" style="display:none;flex-direction:column;flex-wrap:nowrap;">
+                <div class="lexique-box"><div class="lexique-term" id="les-4-phases-de-l-annee">Les 4 phases de l'année</div><div class="lexique-definition"><b>Décembre-février — Préparation</b> : remontée progressive de la lumière, alimentation enrichie, contrôle de la condition physique des reproducteurs (chevauche la fin du repos). <b>Février-mai — Reproduction</b> : mise en ménage, ponte, incubation, élevage des jeunes, souvent 2 à 3 tours de nichée. <b>Juin-septembre — Mue</b> : renouvellement complet du plumage, période la plus exigeante en protéines et acides aminés soufrés. <b>Octobre-décembre — Repos</b> : photopériode courte, alimentation restreinte, récupération avant la reprise du cycle.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="photoperiode-le-declencheur-hormonal">Photopériode : le déclencheur hormonal</div><div class="lexique-definition">Repos hivernal : 8-9h de lumière/jour. Pour déclencher la reproduction, monter progressivement (15-20 min/semaine) jusqu'à 14-15h/jour sur 7-8 semaines — une montée trop rapide provoque mue prématurée ou œufs clairs.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="temperature-hygrometrie-ideales">Température & hygrométrie idéales</div><div class="lexique-definition">15-18°C pour la reproduction (en dessous de 10°C : risque de rétention d'œuf ; au-dessus de 22°C : stress thermique). Hygrométrie 60-70%, cruciale les 3 derniers jours d'incubation pour ramollir la coquille.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="preparation-nutritionnelle-des-reproducteurs">Préparation nutritionnelle des reproducteurs</div><div class="lexique-definition">1 mois avant la mise en ménage : Vitamine E pour les mâles (fertilité, éviter la surcharge graisseuse), Vitamine AD3E + calcium libre-service pour les femelles (coquille, oviducte), pâtée d'élevage introduite progressivement.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="signes-de-bonne-condition-avant-accouplement">Signes de bonne condition avant accouplement</div><div class="lexique-definition">Mâle : cloaque en tison proéminent. Femelle : cloaque rond, doux, dilaté, aligné avec le ventre. Vérifier aussi l'absence de surcharge graisseuse et un abdomen sain (pas de foie gonflé/tache noire).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="mise-en-menage-ponte">Mise en ménage & ponte</div><div class="lexique-definition">Grille de séparation 3-5 jours puis retrait au premier signe d'acceptation mutuelle. Ponte : ~1 œuf/jour tôt le matin, 4-5 œufs en moyenne. Technique des œufs factices (les remplacer chaque matin par un œuf en plastique, stocker les vrais à 15-18°C en les retournant chaque jour) pour que l'incubation démarre en même temps pour tous et que l'éclosion soit groupée.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="incubation-mirage">Incubation & mirage</div><div class="lexique-definition">Durée : 13 jours francs à ~37,5°C, la femelle couve seule pendant que le mâle la nourrit. Mirage (test de fécondité à la lumière) au 6ᵉ ou 7ᵉ jour : œuf clair = translucide avec juste l'ombre du jaune (retirer, laisser reposer la femelle 5-7 jours) ; œuf fécondé = réseau de vaisseaux rouges en toile d'araignée autour d'un point qui bat.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="eclosion-premiers-jours">Éclosion & premiers jours</div><div class="lexique-definition">Baignoire à la femelle aux 12ᵉ-13ᵉ jours pour ramollir la coquille de l'intérieur. Le poussin vit sur ses réserves (sac vitellin) les 12 premières heures ; pas de verdure les 5 premiers jours (risque de diarrhée mortelle).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="baguage">Baguage</div><div class="lexique-definition">Entre le 5ᵉ et le 8ᵉ jour après l'éclosion, avec la bague fermée officielle C.O.M. — c'est l'« acte d'état civil » de l'oiseau (année de naissance, éleveur, éligibilité concours).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="chronologie-du-sevrage">Chronologie du sevrage</div><div class="lexique-definition">J0 éclosion → J6 baguage → J18-21 envol du nid (les jeunes commencent à picorer seuls, la femelle prépare déjà sa 2ᵉ ponte) → J21-28 séparation par grille (évite le plumage des jeunes par la femelle) → J30 sevrage complet (jeunes cassant l'alpiste sec sans aide).</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="ethique-de-selection">Éthique de sélection</div><div class="lexique-definition">Ne jamais réaliser les 3 accouplements réellement létaux (<a href="#" class="terme-lien" onclick="allerA('glossaire','intensif');return false;">Intensif</a>×Intensif, Blanc Dominant×Blanc Dominant, Huppé×Huppé). Renouveler régulièrement le sang de sa souche pour éviter la dépression de consanguinité.</div></div>
+                <div class="lexique-box"><div class="lexique-term" id="modele-fiche-de-suivi-de-cage">📄 Modèle : Fiche de Suivi de Cage / Couple</div><div class="lexique-definition">
+                    À copier-coller pour ton registre papier ou numérique.
+                    <div class="lex-template" id="modele-fiche-couple">================================================================================
+FICHE DE NICHÉE - SAISON : _________
+CAGE N° : ______
+MÂLE :
+• Souche / N° Bague : ______________ - Mutation : _________________________
+FEMELLE :
+• Souche / N° Bague : ______________ - Mutation : _________________________
+
+───
+
+TOUR N° 1
+• Date de mise au nid : __/__/20__
+• Dates de ponte : 1: __/__ | 2: __/__ | 3: __/__ | 4: __/__ | 5: __/__
+• Date de remise des vrais œufs : __/__/20__
+• Mirage au 6-7ème jour : [ ] Fécondés (____ / ____)  [ ] Clairs
+• Date d'éclosion prévue : __/__/20__  |  Éclosion réelle : __/__/20__
+
+REGISTRE DES BAGUES DE LA NICHÉE :
+N° Bague | Date Baguage | Phénotype / Couleur | Sexe (si connu) | Notes
+---------|--------------|----------------------|------------------|------
+_________|__/__/20__    |______________________|__________________|______
+_________|__/__/20__    |______________________|__________________|______
+_________|__/__/20__    |______________________|__________________|______
+_________|__/__/20__    |______________________|__________________|______
+
+• Date de séparation par la grille : __/__/20__
+• Date de sevrage définitif : __/__/20__
+================================================================================</div>
+                    <button class="btn-voir" onclick="copierTexte('modele-fiche-couple')">📋 Copier ce modèle</button>
+                </div></div>
+                <div class="lexique-box"><div class="lexique-term" id="modele-registre-matricule-du-cheptel">📄 Modèle : Registre Matricule du Cheptel</div><div class="lexique-definition">
+                    Inventaire général — une ligne par oiseau.
+                    <table class="lex-table"><tr><th>N° Bague</th><th>Année</th><th>Sexe</th><th>Mutation / Phénotype</th><th>Père (Bague)</th><th>Mère (Bague)</th><th>Statut</th></tr>
+                    <tr><td>FR-26-001</td><td>2026</td><td>Mâle</td><td>Agate Rouge Intensif</td><td>FR-24-112</td><td>FR-25-045</td><td>Reproducteur</td></tr>
+                    <tr><td>FR-26-002</td><td>2026</td><td>Femelle</td><td>Agate Rouge Schimmel</td><td>FR-24-112</td><td>FR-25-045</td><td>Vendu / Cédé</td></tr>
+                    <tr><td>FR-26-003</td><td>2026</td><td>Mâle</td><td>Satiné</td><td>—</td><td>—</td><td>—</td></tr></table>
+                    ℹ️ Pour ton propre cheptel, la page <b>Élevage</b> de l'app fait déjà ce suivi automatiquement (avec export/import) — ce modèle papier est utile en complément, par ex. sur un carnet d'exposition.
+                </div></div>
+            </div>
+        </div>
+    </div>
+    <div id="lex-section-tuto" style="display:none;">
+        <h2>📖 Comment utiliser CanaGen</h2>
+        <div class="step-box"><span class="badge-method">Méthode 1 — Grille</span><br>1er clic = Père · 2e clic = Mère · ℹ️ = fiche détaillée.</div>
+        <div class="step-box"><span class="badge-method badge-manual">Méthode 2 — Menus</span><br>Choisissez la mélanine de base, cochez les mutations et porteurs, configurez la structure et le fond.</div>
+        <div class="step-box"><span class="badge-method" style="background:#1b3d2a;color:#68d391;border-color:#276749;">Méthode 3 — Volière</span><br>Dans <b>Mon Élevage</b> : 🧬 Accoupler sur un ♂ puis une ♀ → bouton Simuler.</div>
+        <div class="step-box"><span class="badge-method" style="background:#2a2050;color:#b794f4;border-color:#553c9a;">Méthode 4 — Fiche oiseau</span><br>Sur chaque oiseau de la volière : <b>👁️ Voir</b> pour consulter sa fiche, <b>✏️ Fiche</b> pour la modifier. Vous pouvez y gérer : photo principale + galerie de photos, soins & alimentation (avec historique automatique), journal de suivi daté, et rappels & échéances (Soin/Mue/Reproduction/Autre). Un encart <b>🔔 Rappels</b> en haut de la page Volière regroupe tous les rappels à venir ou en retard.</div>
+        <div class="step-box"><span class="badge-method" style="background:#4a3000;color:#f5d020;border-color:#d69e2e;">⚠️ Sauvegarde</span><br>Sur un <b>navigateur classique</b> (Firefox normal, Chrome...), votre Cheptel reste enregistré automatiquement. Sur des logiciels type <b>Firefox Focus</b>, tout est effacé à la fermeture : pensez à faire <b>📤 Exporter</b> avant de fermer, puis <b>📥 Importer</b> à la réouverture pour tout récupérer (Cheptel <b>et</b> sauvegardes du Calculateur, tout est inclus dans le même export).</div>
+        <div class="step-box"><span class="badge-method" style="background:#1a2f4a;color:#63b3ed;border-color:#2b6cb0;">Méthode 5 — Lexique</span><br>Onglet <b>🐦 Variétés & Races</b> : le Sauvage, les 590 variétés COM, les mutations hors-COM, les races de posture, de chant, et les vraies espèces croisées avec le canari — tout regroupé, chaque catégorie repliable. Onglet <b>📖 Fiches</b> : 222 fiches détaillées (histoire, description, génétique) — accessibles directement depuis le bouton <b>📖 Fiche complète</b> sur chaque variété COM. Onglet <b>📖 Glossaire</b> : 15 sections encyclopédiques, avec des mots-clés cliquables (en gras) qui renvoient à leur définition où qu'ils apparaissent dans l'app.</div>
+    </div>
+    <div id="lex-section-faq" style="display:none;">
+        <h2>🙋 Questions fréquentes</h2>
+        <div class="lexique-box"><div class="lexique-term">Qu'est-ce qu'un "porteur" ?</div><div class="lexique-definition">Un oiseau <b>porteur</b> a le gène d'une mutation caché dans son patrimoine génétique, sans que ça se voie sur son plumage. Il peut transmettre cette mutation à ses petits sans jamais l'avoir montrée lui-même.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Pourquoi certains croisements sont-ils marqués en rouge (létal) ?</div><div class="lexique-definition">Certaines combinaisons génétiques en <b>double facteur</b> (ex: Intense × Intense, Blanc Dominant × Blanc Dominant) sont mortelles dans l'œuf pour 25% de la portée. L'app vous alerte avant de simuler ces croisements — ils restent possibles, mais déconseillés.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Intense ou Schimmel, quelle différence ?</div><div class="lexique-definition"><b>Intense</b> : le lipochrome recouvre toute la plume, couleur uniforme. <b>Schimmel (Non-Intense)</b> : le lipochrome ne recouvre pas toute la plume, aspect plus clair et givré. On accouple toujours Intense × Schimmel, jamais Intense × Intense (létal).</div></div>
+        <div class="lexique-box"><div class="lexique-term">Comment lire un résultat de simulation ?</div><div class="lexique-definition">Le <b>%</b> indique la probabilité statistique de ce résultat dans la portée. <b>"X / porteur Y"</b> = visuellement X mais transmet aussi Y en caché. <b>"X Visuel"</b> ou <b>"X Pur"</b> = l'oiseau montre bien la mutation X.</div></div>
+        <div class="lexique-box"><div class="lexique-term">C'est quoi "Mosaïque T1" et "T2" ?</div><div class="lexique-definition">Deux formes visuelles du facteur Mosaïque selon le sexe : <b>T1</b> (masque facial) chez le mâle, <b>T2</b> (ligne oculaire) chez la femelle. Un même oisillon Mosaïque montrera l'une ou l'autre selon qu'il naît mâle ou femelle.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Pourquoi je ne trouve pas Pastel/Satiné/Ivoire dans "Mélanine de base" ?</div><div class="lexique-definition">Ces 3 mutations se sélectionnent via les cases à cocher de "Mutations visuelles" (repérables par le tag <b>(LS)</b>), pas dans le menu déroulant de base.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Pourquoi mes données disparaissent à chaque fermeture ?</div><div class="lexique-definition">Sur un <b>navigateur classique</b> (Firefox normal, Chrome...), le Cheptel reste enregistré automatiquement. Certains logiciels type <b>Firefox Focus</b> effacent en revanche tout le stockage à la fermeture complète. Pensez à faire <b>📤 Exporter</b> (page Élevage) avant de fermer, puis <b>📥 Importer</b> à la réouverture pour tout récupérer — Cheptel <b>et</b> sauvegardes du Calculateur sont inclus dans le même export.</div></div>
+        <div class="lexique-box"><div class="lexique-term">À quoi sert le bouton "👁️ Voir" sur un oiseau ?</div><div class="lexique-definition">Il ouvre la fiche de l'oiseau en <b>lecture seule</b> : photo, galerie, génétique, soins, rappels et journal, sans risque de modifier quoi que ce soit par erreur. Un bouton "✏️ Modifier" permet de basculer vers l'édition si besoin.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Les rappels envoient-ils une notification sur mon téléphone ?</div><div class="lexique-definition">Non, pas pour l'instant : ce sont des rappels <b>visuels dans l'application</b> (badge rouge sur l'oiseau concerné + encart "🔔 Rappels" en haut de la Volière). Une vraie notification qui arrive appli fermée demanderait une configuration technique différente (site en https + serveur).</div></div>
+        <div class="lexique-box"><div class="lexique-term">Une femelle peut-elle être porteuse d'une mutation liée au sexe ?</div><div class="lexique-definition">Non, jamais. Chez le canari (mâle ZZ, femelle ZW), une femelle n'a qu'un seul chromosome Z : si elle a le gène, elle montre forcément la mutation. Seul le mâle peut être porteur silencieux.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Le canari jaune, c'est bien sa couleur d'origine ?</div><div class="lexique-definition">Non ! Le serin sauvage des Canaries a un plumage cryptique vert-gris-brun, pour se camoufler. Le jaune est une mutation apparue et fixée artificiellement en captivité (XVIe-XVIIe siècle).</div></div>
+        <div class="lexique-box"><div class="lexique-term">Le canari est-il un animal solitaire ?</div><div class="lexique-definition">Pas vraiment : à l'état sauvage il vit en petits groupes. En cage, un mâle chanteur peut vivre seul, mais apprécie la présence de congénères ou une interaction régulière avec l'éleveur. Attention : deux mâles adultes dans la même cage se battent souvent pour le territoire hors période de reproduction.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Tous les canaris chantent-ils pareil ?</div><div class="lexique-definition">Non, ça dépend de la race et de l'éducation. Un canari de posture (Frisé, Border...) n'a pas la technique codifiée d'un Harzer Roller ou d'un Timbrado, sélectionnés depuis des générations pour la complexité de leur chant.</div></div>
+        <div class="lexique-box"><div class="lexique-term">Pourquoi mon canari ne chante-t-il plus ?</div><div class="lexique-definition">Plusieurs causes possibles : la mue (fatigue énergétique), une maladie/parasite (comme l'acarien rouge), un manque de luminosité en hiver, ou un stress (courants d'air, cage déplacée, prédateur à proximité).</div></div>
+    </div>
+</div>
+
+<!-- PAGE 4 : JOURNAL -->
+<div id="page-journal" class="app-page">
+    <h1>📋 Journal</h1>
+    <div style="background:#0f2035;border-left:4px solid #f5d020;padding:12px;border-radius:6px;margin-bottom:12px;">
+        <div style="font-weight:bold;color:#f5d020;margin-bottom:4px;">🆕 Version 1.4 — Courante</div>
+        <div style="font-size:0.82rem;color:#a0aec0;line-height:1.5;">
+            • Nouveau module 🐣 Reproduction (fichier reproduction.js dédié, autonome) : reproductions (père × mère, saison, état, cage optionnelle), pontes, éclosions, jeunes avec sélection (⚪⭐🟡🔴✅), journal individuel par jeune, lien automatique vers les prévisions du Calculateur (via bagues des parents, sans doublon de système de liaison), ajout d'un jeune au Cheptel en un clic, corbeille avec restauration
+        </div>
+    </div>
+    <div style="background:#0f2035;border-left:4px solid #4a5568;padding:12px;border-radius:6px;margin-bottom:12px;opacity:0.75;">
+        <div style="font-weight:bold;color:#a0aec0;margin-bottom:4px;">Version 1.3</div>
+        <div style="font-size:0.82rem;color:#718096;line-height:1.5;">
+            • Fichier cheptel.js dédié (logique Élevage séparée de l'interface)<br>
+            • Fiche oiseau complète : mode 👁️ Voir (lecture seule) + ✏️ Fiche (modification)<br>
+            • Photo principale modifiable + galerie de photos secondaire<br>
+            • Soins & alimentation par oiseau, avec historique automatique dans le journal<br>
+            • Journal de suivi daté, propre à chaque oiseau<br>
+            • Rappels & échéances (Soin/Mue/Reproduction/Autre) avec encart "🔔 Rappels" global et badge de retard<br>
+            • Export corrigé : zone de copie isolée + bouton "📋 Copier" en un clic<br>
+            • Correction : l'accouplement depuis la volière fonctionne maintenant aussi pour les oiseaux Mosaïque sauvegardés via "Garder"
+        </div>
+    </div>
+    <div style="background:#0f2035;border-left:4px solid #4a5568;padding:12px;border-radius:6px;margin-bottom:12px;opacity:0.6;">
+        <div style="font-weight:bold;color:#a0aec0;margin-bottom:4px;">Version 1.2</div>
+        <div style="font-size:0.82rem;color:#718096;line-height:1.5;">
+            • Calculateur multi-sélection mutations (cases à cocher)<br>
+            • Séparation mélanine de base / mutations visuelles / porteurs<br>
+            • Fichier calculator.js dédié à l'interface calculateur<br>
+            • Design CanaGen — thème sombre bleu/jaune<br>
+            • Splash screen au lancement<br>
+            • 🧬 Accoupler depuis la volière<br>
+            • TEST-000001 validé ✅
+        </div>
+    </div>
+    <h2>🔧 Bugs Connus</h2>
+    <div style="background:#1a0a0a;border-left:4px solid #e53e3e;padding:12px;border-radius:6px;margin-bottom:10px;">
+        <div style="font-size:0.82rem;color:#fc8181;line-height:1.5;">
+            • Sur des logiciels type Firefox Focus, le cheptel est effacé à la fermeture → exporter avant de fermer, importer à la réouverture
+        </div>
+    </div>
+    <h2>📅 À Venir</h2>
+    <div style="background:#0f2035;border-left:4px solid #38a169;padding:12px;border-radius:6px;margin-bottom:10px;">
+        <div style="font-size:0.82rem;color:#68d391;line-height:1.5;">
+            • Étude de 3 mutations supplémentaires (Ailes Grises, Mogno, Le Perle) avant intégration au moteur<br>
+            • Complément du Lexique (pathologies, biologie, glossaire vétérinaire)<br>
+            • Hybrides et croisements Raza, Lizard, Gloster<br>
+            • Choix de langue (Français / Anglais)
+        </div>
+    </div>
+    <div style="text-align:center;margin-top:20px;padding:15px;background:#0f2035;border-radius:8px;border:1px solid #1e3a5f;">
+        <div style="font-size:0.9rem;color:#f5d020;font-weight:bold;">CanaGen</div>
+        <div style="font-size:0.75rem;color:#718096;">Génétique Canaris COM</div>
+        <div style="font-size:0.7rem;color:#4a5568;margin-top:4px;">Développé avec Claude (Anthropic) · 2026</div>
+    </div>
+</div>
+
+</div>
+
+<nav class="bottom-nav">
+    <button id="btn-nav-calc"    class="nav-item active" onclick="naviguerVers('page-calc',this)"><span>🧬</span>Calculateur</button>
+    <button id="btn-nav-cheptel" class="nav-item"        onclick="naviguerVers('page-cheptel',this)"><span>🦅</span>Élevage</button>
+    <button id="btn-nav-cages" class="nav-item"          onclick="naviguerVers('page-cages',this);afficherCages();"><span>🏠</span>Cages</button>
+    <button id="btn-nav-reproduction" class="nav-item"   onclick="naviguerVers('page-reproduction',this)"><span>🐣</span>Reprod.</button>
+    <button id="btn-nav-lexique" class="nav-item"        onclick="naviguerVers('page-lexique',this)"><span>📚</span>Lexique</button>
+    <button id="btn-nav-journal" class="nav-item"        onclick="naviguerVers('page-journal',this)"><span>📋</span>Journal</button>
+</nav>
+
+<!-- SCRIPTS — ordre important -->
+<script src="data.js"></script>
+<script src="fiches_lipochrome.js"></script>
+<script src="fiches_noir.js"></script>
+<script src="fiches_brun.js"></script>
+<script src="fiches_agate.js"></script>
+<script src="fiches_isabelle.js"></script>
+<script src="fiches_index.js"></script>
+<script src="genetics.js"></script>
+<script src="calculator.js"></script>
+<script src="simulations.js"></script>
+<script src="cheptel.js"></script>
+<script src="cages.js"></script>
+<script src="suggestions.js"></script>
+<script src="ui.js"></script>
+<script src="reproduction.js"></script>
+
+<script>
+// Splash screen
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        const splash = document.getElementById('splash');
+        splash.classList.add('hidden');
+        setTimeout(function() { splash.style.display='none'; }, 600);
+    }, 2500);
+});
+window.addEventListener('load', function() {
+    if (typeof afficherCages === 'function') afficherCages();
+});
+</script>
+
+</body>
+</html>
