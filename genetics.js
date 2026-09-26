@@ -1,11 +1,15 @@
 // ============================================
-//   CANARIAPP — Moteur Génétique v4
+//   CANARIAPP — Moteur Génétique v5
 //   Basé sur Mendel / Punnett
 //   Mutations liées au sexe (loci Z indépendants) : Brun, Agate, Pastel, Ivoire
 //   Isabelle = Brun + Agate combinés (pas un locus séparé)
 //   Satiné : encore sur l'ancien modèle à locus unique, en attente de revue scientifique dédiée
 //   Mutations récessives libres : Opale, Phaeo, Topaze, Eumo, Onyx
 //   Blanc Récessif : géré dans le fond lipochrome
+//   Locus E (panachure) : Lipochrome (E) codominant avec base mélanique (e) —
+//   AJOUTÉ v5 : le Panaché est désormais un vrai génotype hétérozygote E/e,
+//   réinjectable comme parent (avant : simple texte affiché une fois, perdu
+//   si on le réutilisait comme parent — cf. discussion "Panaché" 26/09/2026).
 // ============================================
 
 const MUT_LIEE_SEXE      = ["Satiné"]; // Satiné laissé tel quel (NON TRANCHÉ, cf. synthèse CanariGenDB du 19/07/2026)
@@ -240,6 +244,48 @@ function punnettFond(mf, ff, mpPorteurBlanc) {
     return [{ prob:1.0, fond:mf+" x "+ff, lethal:false }];
 }
 
+// --- Locus E (panachure) : Lipochrome (E) codominant avec base mélanique (e) ---
+// AJOUTÉ v5. Avant, "Lipochrome" et "Noir/Sauvage" étaient traités comme deux
+// bases mélaniques totalement séparées (cf. buildLipoMel, supprimé) : le
+// résultat "Panaché" n'était qu'un texte affiché une fois, jamais un
+// génotype réinjectable comme parent. Ici, Lipochrome = homozygote EE,
+// Panaché = hétérozygote Ee (transporte la base mélanique ET le potentiel
+// lipochrome pur), base mélanique normale (Noir/Sauvage) = homozygote ee.
+// Codominant : un Panaché montre sa base mélanique (comme un mélanique pur)
+// mais transmet le lipochrome pur à 50% de ses gamètes.
+function alleleE(v) {
+    if (v === "Lipochrome") return ["E","E"];
+    if (v === "Panaché")    return ["E","e"];
+    return ["e","e"]; // Noir, Sauvage, ou toute base mélanique classique
+}
+function punnettLocusE(mv, fv) {
+    var ma = alleleE(mv), fa = alleleE(fv), compte = {};
+    ma.forEach(function(a) { fa.forEach(function(b) {
+        var key = (a === "E" && b === "E") ? "EE" : (a === "e" && b === "e") ? "ee" : "Ee";
+        compte[key] = (compte[key] || 0) + 0.25;
+    }); });
+    return Object.keys(compte).filter(function(k) { return compte[k] > 0.0001; })
+        .map(function(k) { return { prob: compte[k], geno: k }; });
+}
+// Applique le locus E à une liste déjà construite (résultats mélanine/mutations)
+// et renomme chaque entrée selon le génotype E obtenu : EE → Lipochrome Pur,
+// Ee → Panaché (base X), ee → X inchangé (la base mélanique déjà calculée).
+function appliquerLocusE(mv, fv, lsList) {
+    var eDist = punnettLocusE(mv, fv), out = [];
+    lsList.forEach(function(item) {
+        eDist.forEach(function(e) {
+            var prob = item.prob * e.prob;
+            if (prob < 0.0001) return;
+            var nom;
+            if (e.geno === "EE")      nom = "Lipochrome Pur";
+            else if (e.geno === "Ee") nom = "Panaché (base " + item.nom + ")";
+            else                       nom = item.nom;
+            out.push({ prob: prob, nom: nom });
+        });
+    });
+    return out;
+}
+
 // --- Assemblage final ---
 function assembler(lsItems, rl, plumes, fonds, estMale) {
     const map = {};
@@ -251,7 +297,7 @@ function assembler(lsItems, rl, plumes, fonds, estMale) {
         nom = nom.replace(/^Noir [+] (.+ Visuel)$/, '$1');
         // NE PAS transformer "Noir + porteur X" → format différent mâle/femelle géré plus bas
         const lethal = pi.lethal || fi.lethal;
-        const nouveau = nom.includes("porteur") || fi.fond.includes("porteur");
+        const nouveau = nom.includes("porteur") || fi.fond.includes("porteur") || nom.includes("Panaché");
         const plume = resolvePlumeSexe(pi.plume, estMale);
         const key = nom + "|" + plume + "|" + fi.fond + "|" + lethal;
         if (map[key]) map[key].prob += prob;
@@ -279,19 +325,6 @@ function calculerTout(mv, mp, mpl, mf, fv, fp, fpl, ff, mrl, mrlp, frl, frlp, lo
     const mpPorteurBlanc = mp === "Blanc Récessif";
     const mpReal = mpPorteurBlanc ? "Rien" : mp;
 
-    // Lipochrome × Lipochrome
-    if (mv==="Lipochrome" && fv==="Lipochrome") {
-        const pl = punnettPlume(mpl, fpl), fo = punnettFond(mf, ff, mpPorteurBlanc), resM = [], resF = [];
-        pl.forEach(p => fo.forEach(f => {
-            const prob = Math.round(p.prob * f.prob * 100);
-            if (!prob) return;
-            const l = p.lethal||f.lethal, nouveau = f.fond.includes("porteur");
-            resM.push({ prob, nom:"Lipochrome Pur", plume:resolvePlumeSexe(p.plume, true),  fond:f.fond, lethal:l, nouveau });
-            resF.push({ prob, nom:"Lipochrome Pur", plume:resolvePlumeSexe(p.plume, false), fond:f.fond, lethal:l, nouveau });
-        }));
-        return { resM, resF };
-    }
-
     // Sauvage × Sauvage : lignée 100% ancestrale, phénotype fixe
     if (mv==="Sauvage" && fv==="Sauvage")
         return { resM:[{prob:100,nom:"Sauvage",plume:"",fond:"",lethal:false,nouveau:false}],
@@ -302,26 +335,6 @@ function calculerTout(mv, mp, mpl, mf, fv, fp, fpl, ff, mrl, mrlp, frl, frlp, lo
     // parent, ce n'est plus un résultat fixe.
     if (mv==="Sauvage") mv = "Noir";
     if (fv==="Sauvage") fv = "Noir";
-
-    // Lipochrome × Mélanique
-    const buildLipoMel = (nomM, nomF) => {
-        const pl = punnettPlume(mpl,fpl), fo = punnettFond(mf,ff,mpPorteurBlanc), resM=[], resF=[];
-        pl.forEach(p => fo.forEach(f => {
-            const prob = Math.round(p.prob*f.prob*100);
-            if (!prob) return;
-            const l = p.lethal||f.lethal;
-            resM.push({prob,nom:nomM,plume:resolvePlumeSexe(p.plume, true), fond:f.fond,lethal:l,nouveau:true});
-            resF.push({prob,nom:nomF,plume:resolvePlumeSexe(p.plume, false),fond:f.fond,lethal:l,nouveau:false});
-        }));
-        return {resM,resF};
-    };
-    // Le gène qui supprime la mélanine (gène "E") est CODOMINANT, pas
-    // récessif simple : Mélanique pur × Lipochrome pur donne 100% de
-    // jeunes "Panaché" (hétérozygote E+/E, phénotype intermédiaire à
-    // taches), pas un simple porteur/visuel. Sources concordantes de
-    // génétique canari (gène E, codominance, canari panaché).
-    if (mv==="Lipochrome" && fv!=="Lipochrome") return buildLipoMel("Panaché (base " + fv + ")", "Panaché (base " + fv + ")");
-    if (fv==="Lipochrome" && mv!=="Lipochrome") return buildLipoMel("Panaché (base " + mv + ")", "Panaché (base " + mv + ")");
 
     // Semi-dominants
     // Jaspe : mutation semi-dominante/dominante à hérédité libre, PAS de facteur
@@ -389,9 +402,13 @@ function calculerTout(mv, mp, mpl, mf, fv, fp, fpl, ff, mrl, mrlp, frl, frlp, lo
         return out;
     };
 
+    // Locus E (panachure) appliqué APRÈS la construction de la base mélanique
+    // complète (mélanine + Pastel/Ivoire), pour que "Panaché (base X)" porte
+    // le nom complet de X, mutations comprises — ex: "Panaché (base Isabelle
+    // Pur + Pastel Visuel)".
     const ls = {
-        resMales:    combiner(baseM, sufM),
-        resFemelles: combiner(baseF, sufF)
+        resMales:    appliquerLocusE(mv, fv, combiner(baseM, sufM)),
+        resFemelles: appliquerLocusE(mv, fv, combiner(baseF, sufF))
     };
     const rl     = punnettRecessifLibre(mrl, mrlp, frl, frlp);
     const plumes = punnettPlume(mpl, fpl);

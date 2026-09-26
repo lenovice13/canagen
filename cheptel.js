@@ -43,13 +43,18 @@ function calculerDescOiseau(base, mutations, porteurs, plume, fond) {
     var autresMuts = mutations.filter(function(m){ return m !== 'Brun' && m !== 'Agate' && m !== 'Satiné'; })
                               .map(function(m){ return m === 'Cobalt' ? 'Kobalt' : m; });
     var nomBase = base === 'Lipochrome' ? 'Lipochrome' : (base === 'Sauvage' ? 'Sauvage' : 'Noir');
-    if (base === 'Noir') {
+    // AJOUTÉ v5 : un oiseau Panaché (base) garde sa base mélanique réelle
+    // (Noir/Brun/Agate/Isabelle...), affinée exactement comme un Noir, puis
+    // enveloppée en "Panaché (base X)" — sinon la fiche Cheptel affichait
+    // juste "Noir" pour un Panaché, perdant le génotype hétérozygote E/e.
+    if (base === 'Noir' || base === 'Panaché') {
         if (hasBrun && hasAgate)  nomBase = 'Isabelle';
         else if (hasBrun && hasSatine) nomBase = 'Brun Satiné';
         else if (hasBrun)         nomBase = 'Brun';
         else if (hasAgate)        nomBase = 'Agate';
         else if (hasSatine)       nomBase = 'Satiné';
     }
+    if (base === 'Panaché') nomBase = 'Panaché (base ' + nomBase + ')';
     var desc = nomBase;
     if (autresMuts.length > 0) desc += ' + ' + autresMuts.join(' + ');
     if (porteurs.length  > 0) desc += ' / porteur ' + porteurs.join(' & ');

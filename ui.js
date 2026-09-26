@@ -388,9 +388,13 @@ function nomVersParams(nomOriginal, sexeConnu) {
     else if (nom.indexOf('Schimmel') >= 0 || nom.indexOf('Non-Intense') >= 0)   p.plume = 'Schimmel';
     else                                     p.plume = 'Intense';
 
-    // Mélanine de base — restreinte à Noir/Lipochrome/Sauvage désormais
+    // Mélanine de base — restreinte à Noir/Lipochrome/Panaché/Sauvage désormais
     // (Brun/Agate/Isabelle/Pastel/Ivoire ne sont plus des valeurs de base, voir plus bas)
-    if (nom.indexOf('Lipochrome') >= 0 || nom.match(/^(Jaune|Rouge|Orangé|Blanc)/) || nom.match(/^Ivoire (Jaune|Rouge)/)) p.base = 'Lipochrome';
+    // AJOUTÉ v5 : reconnaissance de "Panaché (base X)" — sans ce test, un
+    // jeune Panaché réinjecté comme parent tombait silencieusement dans le
+    // else et redevenait un Noir pur classique (perte du génotype E/e caché).
+    if (/^Panaché/.test(nomOriginal)) p.base = 'Panaché';
+    else if (nom.indexOf('Lipochrome') >= 0 || nom.match(/^(Jaune|Rouge|Orangé|Blanc)/) || nom.match(/^Ivoire (Jaune|Rouge)/)) p.base = 'Lipochrome';
     else if (nom.indexOf('Wild Type') >= 0 || nom.match(/^Sauvage\b/)) p.base = 'Sauvage';
     else                                   p.base = 'Noir';
 

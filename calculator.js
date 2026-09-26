@@ -98,6 +98,7 @@ function genererFormulaireParent(prefix, isMale) {
     h += '<select id="' + prefix + '-base" onchange="mettreAJourMutations(\'' + prefix + '\');signalerModificationManuelle(\'' + prefix + '\')">';
     h += '<option value="Noir">Noir (Oxydé Classique)</option>';
     h += '<option value="Lipochrome">Lipochrome Pur (Sans Mélanine)</option>';
+    h += '<option value="Panaché">Panaché (Hétérozygote Lipo/Mélanique)</option>';
     h += '<option value="Sauvage">Sauvage (Non Muté)</option>';
     h += '</select>';
 
